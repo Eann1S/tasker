@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../libs/shared/prisma/prisma.service';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   constructor(private prisma: PrismaService) {}
 
   async createUser(data: Prisma.UserCreateInput) {
-    console.log('creating user with email: ', data.email);
+    this.logger.log(`creating user with email ${data.email}`);
     return this.prisma.user.create({ data });
   }
 

@@ -1,12 +1,14 @@
 import { ClientProxy } from '@nestjs/microservices';
-import { USER_SERVICE } from '../../../libs/shared/src/constants/microservices.tokens';
-import { Inject } from '@nestjs/common';
+import { USER_SERVICE } from '../constants/microservices.tokens';
+import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import { Prisma } from '@prisma/client';
 
+@Injectable()
 export class UserServiceAdapter {
   constructor(@Inject(USER_SERVICE) private userService: ClientProxy) {}
 
-  async createUser(data: any) {
+  async createUser(data: Prisma.UserCreateInput) {
     return firstValueFrom(this.userService.send({ cmd: 'create' }, data));
   }
 

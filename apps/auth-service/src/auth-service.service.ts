@@ -1,37 +1,39 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto } from '../../../libs/shared/src/dtos/RegisterDto';
 import { UserDto } from '../../../libs/shared/src/dtos/UserDto';
 import { JwtDto } from '../../../libs/shared/src/dtos/JwtDto';
-import { LoginDto } from '../../../libs/shared/src/dtos/LoginDto';
-import { UserServiceAdapter } from './user-service.adapter';
+import { AuthDto } from '../../../libs/shared/src/dtos/AuthDto';
+import { UserServiceAdapter } from '../../../libs/shared/src/adapters/user-service.adapter';
 import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private userService: UserServiceAdapter,
     private jwtService: JwtService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<JwtDto> {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-    const payload = { sub: user.id, email: user.email };
+  async login(authDto: AuthDto): Promise<JwtDto> {
+    const user = await this.validateUser(authDto.email, authDto.password);
+    this.logger.log(`user with email ${user.email} is authorized`);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(user),
     };
   }
 
-  async register(registerDto: RegisterDto): Promise<UserDto> {
-    await this.checkThatUserDoesNotExist(registerDto.email);
-    const hashedPassword = await this.hashPassword(registerDto.password);
+  async register(authDto: AuthDto): Promise<UserDto> {
+    await this.checkThatUserDoesNotExist(authDto.email);
+    const hashedPassword = await this.hashPassword(authDto.password);
+    this.logger.log(`registering user with email ${authDto.email}`);
     return this.userService.createUser({
-      ...registerDto,
+      ...authDto,
       password: hashedPassword,
     });
   }

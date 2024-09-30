@@ -1,24 +1,13 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { SharedModule } from '../../../libs/shared/src';
 import { UserController } from './user-service.controller';
-import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from '../../../libs/shared/prisma/prisma.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      envFilePath: [
-        './apps/user-service/.env.local',
-        './apps/user-service/.env',
-      ],
-      expandVariables: true,
-      isGlobal: true,
-    }),
-    SharedModule,
-  ],
+  imports: [SharedModule, PrismaModule],
   controllers: [UserController],
-  providers: [UserService, PrismaService],
+  providers: [UserService],
   exports: [UserService],
 })
 export class UserModule {}

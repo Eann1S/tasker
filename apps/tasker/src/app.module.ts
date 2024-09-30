@@ -9,13 +9,19 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      envFilePath: ['.env.local', '.env'],
+      isGlobal: true,
+    }),
     SharedModule,
     ClientsModule.register([
       {
         name: AUTH_SERVICE,
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3001 },
+        options: {
+          host: process.env.AUTH_SERVICE_HOST,
+          port: +process.env.AUTH_SERVICE_PORT,
+        },
       },
     ]),
   ],
