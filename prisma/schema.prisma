@@ -19,9 +19,36 @@ model User {
   password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
+  tasks     Task[]
 }
 
 enum Role {
   ADMIN
   USER
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  status      Status     @default(PENDING)
+  priority    Priority   @default(NORMAL)
+  dueDate     DateTime?
+  assignedTo  User?      @relation(fields: [assignedToId], references: [id])
+  assignedToId Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum Status {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
 }
