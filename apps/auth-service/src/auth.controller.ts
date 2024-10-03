@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { AuthService } from './auth-service.service';
+import { AuthService } from './auth.service';
 import { AuthDto } from '../../../libs/shared/src/dtos/AuthDto';
 import { MessagePattern } from '@nestjs/microservices';
 
