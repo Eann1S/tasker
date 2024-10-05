@@ -2,10 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { AUTH_SERVICE } from '../../../libs/shared/src/constants/microservices.tokens';
+import {
+  AUTH_SERVICE,
+  TASK_SERVICE,
+} from '../../../libs/shared/src/constants/microservices.tokens';
 import { SharedModule } from '../../../libs/shared/src';
 import { AuthController } from '../auth/auth.controller';
 import { ConfigModule } from '@nestjs/config';
+import { TaskController } from '../task/task.controller';
 
 @Module({
   imports: [
@@ -23,9 +27,17 @@ import { ConfigModule } from '@nestjs/config';
           port: +process.env.AUTH_SERVICE_PORT,
         },
       },
+      {
+        name: TASK_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          host: process.env.TASK_SERVICE_HOST,
+          port: +process.env.TASK_SERVICE_PORT,
+        },
+      },
     ]),
   ],
-  controllers: [AppController, AuthController],
+  controllers: [AppController, AuthController, TaskController],
   providers: [AppService],
 })
 export class AppModule {}

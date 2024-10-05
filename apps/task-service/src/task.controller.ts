@@ -8,8 +8,8 @@ export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @MessagePattern({ cmd: 'create' })
-  async createTask(data: Prisma.TaskCreateInput) {
-    return this.taskService.createTask(data);
+  async createTask(input: Prisma.TaskCreateInput) {
+    return this.taskService.createTask(input);
   }
 
   @MessagePattern({ cmd: 'find_by_id' })
@@ -17,14 +17,14 @@ export class TaskController {
     return this.taskService.findTaskById(id);
   }
 
-  @MessagePattern({ cmd: 'find_many_for_user' })
+  @MessagePattern({ cmd: 'find_tasks_for_user' })
   async getTasksForUser(userId: number) {
     return this.taskService.findTasksForUser(userId);
   }
 
   @MessagePattern({ cmd: 'update' })
-  async updateTask(id: number, data: Prisma.TaskCreateInput) {
-    return this.taskService.updateTask(id, data);
+  async updateTask(data: { id: number; input: Prisma.TaskUpdateInput }) {
+    return this.taskService.updateTask(+data.id, data.input);
   }
 
   @MessagePattern({ cmd: 'delete' })
