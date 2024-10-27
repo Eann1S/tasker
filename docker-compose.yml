@@ -4,6 +4,7 @@ services:
   db:
     image: postgres:alpine3.17
     container_name: db
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
