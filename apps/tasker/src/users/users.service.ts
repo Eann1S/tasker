@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../../libs/shared/src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { UserDto } from '../../../../libs/shared/src';
 
 @Injectable()
 export class UsersService {
@@ -33,6 +34,12 @@ export class UsersService {
       Logger.error(message);
       throw new NotFoundException(message);
     }
+  }
+
+  async getProfileByUserId(id: number): Promise<UserDto> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    delete user.password;
+    return user;
   }
 
   async getUserByEmail(email: string) {
