@@ -35,14 +35,12 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  async refreshToken(refresh_token: string): Promise<JwtDto> {
-    try {
-      const payload = await this.jwtService.verifyAsync(refresh_token);
-      const access_token = await this.generateAccessToken(payload);
-      return { access_token, refresh_token };
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
+  async refreshToken(payload: JwtPayload, refresh_token: string): Promise<JwtDto> {
+    const access_token = await this.generateAccessToken({
+      sub: payload.sub,
+      email: payload.email,
+    });
+    return { access_token, refresh_token };
   }
 
   async register(registerDto: RegisterDto): Promise<UserDto> {
