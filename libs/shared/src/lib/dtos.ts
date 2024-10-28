@@ -8,7 +8,13 @@ export type RegisterDto = {
 } & LoginDto;
 
 export type JwtDto = {
-  token: string;
+  access_token: string;
+  refresh_token: string;
+}
+
+export type JwtPayload = {
+  sub: number;
+  email: string;
 }
 
 export type UserDto = {

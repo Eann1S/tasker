@@ -2,6 +2,7 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import {
   JwtDto,
+  JwtPayload,
   LoginDto,
   RegisterDto,
   UserDto,
@@ -11,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  private readonly saltOrRounds = 10;
+  private readonly saltOrRounds = process.env.SALT_OR_ROUNDS;
   constructor(
     private userService: UsersService,
     private jwtService: JwtService
@@ -27,9 +28,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = await this.jwtService.signAsync({ sub: user.id });
+    const payload: JwtPayload = { sub: user.id, email: user.email };
+    const access_token = await this.generateAccessToken(payload);
+    const refresh_token = await this.generateRefreshToken(payload);
     Logger.log(`Login successful for ${email}`);
-    return { token };
+    return { access_token, refresh_token };
+  }
+
+  async refreshToken(refresh_token: string): Promise<JwtDto> {
+    try {
+      const payload = await this.jwtService.verifyAsync(refresh_token);
+      const access_token = await this.generateAccessToken(payload);
+      return { access_token, refresh_token };
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   async register(registerDto: RegisterDto): Promise<UserDto> {
@@ -46,6 +59,18 @@ export class AuthService {
     const { password: _, ...result } = user;
     Logger.log(`Registration successful for ${email}`);
     return result;
+  }
+
+  private generateAccessToken(payload: JwtPayload) {
+    return this.jwtService.signAsync(payload, {
+      expiresIn: process.env.JWT_EXPIRATION,
+    });
+  }
+
+  private generateRefreshToken(payload: JwtPayload) {
+    return this.jwtService.signAsync(payload, {
+      expiresIn: process.env.JWT_REFRESH_EXPIRATION,
+    });
   }
 
   private async isPasswordValid(
