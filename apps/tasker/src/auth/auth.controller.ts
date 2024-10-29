@@ -1,28 +1,18 @@
 import {
   Body,
   Controller,
-  Headers,
   HttpCode,
   HttpStatus,
   Post,
   Request,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtPayload, LoginDto, RegisterDto } from '../../../../libs/shared/src';
+import { LoginDto, RegisterDto } from '../../../../libs/shared/src';
 import { Public } from './public.decorator';
-import { AuthRefreshTokenGuard } from './auth.refresh_token.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Public()
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
 
   @Public()
   @Post('register')
@@ -32,10 +22,21 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(AuthRefreshTokenGuard)
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Request() req: { userId: number }) {
+    return this.authService.logout(req.userId);
+  }
+
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Request() req: { payload: JwtPayload, refresh_token: string }) {
-    return this.authService.refreshToken(req.payload, req.refresh_token);
+  async refreshToken(@Request() req: { userId: number, token: string }) {
+    return this.authService.refreshToken(req.token);
   }
 }

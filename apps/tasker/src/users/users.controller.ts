@@ -7,7 +7,7 @@ export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  async getProfile(@Request() req: { payload: JwtPayload }) {
-    return this.usersService.getProfileByUserId(req.payload.sub);
+  async getProfile(@Request() req: { userId: number }) {
+    return this.usersService.getProfileByUserId(req.userId);
   }
 }

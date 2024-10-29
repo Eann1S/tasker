@@ -14,8 +14,9 @@ export type JwtDto = {
 
 export type JwtPayload = {
   sub: number;
-  email: string;
-}
+  exp: number;
+  iat: number;
+};
 
 export type UserDto = {
   id: number;
