@@ -7,8 +7,8 @@ import {
   Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from '../../../../libs/shared/src';
 import { Public } from './public.decorator';
+import { RegisterDto, LoginDto } from '@tasker/shared';
 
 @Controller('auth')
 export class AuthController {
@@ -30,7 +30,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: { userId: number }) {
+  async logout(@Request() req: { userId: string }) {
     return this.authService.logout(req.userId);
   }
 

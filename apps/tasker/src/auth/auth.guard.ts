@@ -10,7 +10,7 @@ import { TokenExpiredError } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { JwtPayload } from '@tasker/shared';
-import { AuthService } from 'apps/tasker/src/auth/auth.service';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

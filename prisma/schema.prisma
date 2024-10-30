@@ -14,8 +14,40 @@ datasource db {
 }
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  username  String?
-  password  String
+  id          String      @id @default(uuid())
+  email       String      @unique
+  username    String?
+  password    String
+  created_at  DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tasks       Task[]
+  
+  @@index([email])
+}
+
+model Task {
+  id          String        @id @default(uuid())
+  title       String
+  description String?       @db.Text
+  status      TaskStatus    @default(todo)
+  priority    TaskPriority  @default(low)
+  dueDate     DateTime?
+  creator     User          @relation(fields: [creatorId], references: [id])
+  creatorId   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([creatorId])
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
 }

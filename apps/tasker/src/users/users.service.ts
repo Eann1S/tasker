@@ -4,9 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../../../libs/shared/src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { UserDto } from '../../../../libs/shared/src';
+import { PrismaService, UserDto } from '@tasker/shared';
 
 @Injectable()
 export class UsersService {
@@ -14,11 +13,12 @@ export class UsersService {
 
   async createUser(data: Prisma.UserCreateInput) {
     try {
-      return await this.prisma.user.create({ data });
-    } catch (_) {
-      const message = `User with email ${data.email} already exists.`;
-      Logger.error(message);
-      throw new ConflictException(message);
+      const user = await this.prisma.user.create({ data });
+      Logger.debug(`user created with id: ${user.id}`);
+      return user;
+    } catch (error) {
+      Logger.error(error);
+      throw new ConflictException(`User with email ${data.email} already exists.`);
     }
   }
 
@@ -26,17 +26,18 @@ export class UsersService {
     return this.prisma.user.findMany();
   }
 
-  async getUserById(id: number) {
+  async getUserById(id: string) {
     try {
+      Logger.debug(`Getting user with id: ${id}`);
       return await this.prisma.user.findUnique({ where: { id } });
-    } catch (_) {
-      const message = `User with id ${id} not found.`;
-      Logger.error(message);
-      throw new NotFoundException(message);
+    } catch (error) {
+      Logger.error(error);
+      throw new NotFoundException(`User with id ${id} not found.`);
     }
   }
 
-  async getProfileByUserId(id: number): Promise<UserDto> {
+  async getProfileByUserId(id: string): Promise<UserDto> {
+    Logger.debug(`Getting user profile for user id: ${id}`);
     const user = await this.prisma.user.findUnique({ where: { id } });
     delete user.password;
     return user;
@@ -44,31 +45,31 @@ export class UsersService {
 
   async getUserByEmail(email: string) {
     try {
+      Logger.debug(`Getting user with email: ${email}`);
       return await this.prisma.user.findUnique({ where: { email } });
-    } catch (_) {
-      const message = `User with email ${email} not found.`;
-      Logger.error(message);
-      throw new NotFoundException(message);
+    } catch (error) {
+      Logger.error(error);
+      throw new NotFoundException(`User with email ${email} not found.`);
     }
   }
 
-  async updateUser(id: number, data: Prisma.UserUpdateInput) {
+  async updateUser(id: string, data: Prisma.UserUpdateInput) {
     try {
+      Logger.debug(`Updating user with id: ${id}`);
       return await this.prisma.user.update({ where: { id }, data });
-    } catch (_) {
-      const message = `User with id ${id} not found.`;
-      Logger.error(message);
-      throw new NotFoundException(message);
+    } catch (error) {
+      Logger.error(error);
+      throw new NotFoundException(`User with id ${id} not found.`);
     }
   }
 
-  async deleteUser(id: number) {
+  async deleteUser(id: string) {
     try {
+      Logger.debug(`Deleting user with id: ${id}`);
       return await this.prisma.user.delete({ where: { id } });
-    } catch (_) {
-      const message = `User with id ${id} not found.`;
-      Logger.error(message);
-      throw new NotFoundException(message);
+    } catch (error) {
+      Logger.error(error);
+      throw new NotFoundException(`User with id ${id} not found.`);
     }
   }
 }

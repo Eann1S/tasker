@@ -13,13 +13,13 @@ export type JwtDto = {
 }
 
 export type JwtPayload = {
-  sub: number;
+  sub: string;
   exp: number;
   iat: number;
 };
 
 export type UserDto = {
-  id: number;
+  id: string;
   username: string;
   email: string;
 }

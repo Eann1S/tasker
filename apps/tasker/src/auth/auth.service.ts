@@ -14,7 +14,7 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class AuthService {
-  private readonly saltOrRounds = process.env.SALT_OR_ROUNDS;
+  private readonly saltOrRounds = +process.env.SALT_OR_ROUNDS;
   private readonly ttlRefreshToken = +process.env.JWT_REFRESH_EXPIRATION_MILLIS;
   constructor(
     private userService: UsersService,
@@ -55,7 +55,7 @@ export class AuthService {
   }
 
   async logout(
-    userId: number
+    userId: string
   ): Promise<void> {
     await this.deleteToken(userId);
     Logger.log(`Logout successful for id: ${userId}`);
@@ -86,7 +86,7 @@ export class AuthService {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  private async generateTokens(userId: number): Promise<JwtDto> {
+  private async generateTokens(userId: string): Promise<JwtDto> {
     const payload = { sub: userId };
     return {
       access_token: await this.generateAccessToken(payload),
@@ -106,15 +106,15 @@ export class AuthService {
     });
   }
 
-  private async storeToken(userId: number, token: string, ttl: number) {
+  private async storeToken(userId: string, token: string, ttl: number) {
     return this.redis.set(userId.toString(), token, 'EX', ttl);
   }
 
-  private async doesTokenExist(userId: number): Promise<boolean> {
+  private async doesTokenExist(userId: string): Promise<boolean> {
     return !!(await this.redis.exists(userId.toString()));
   }
 
-  private async deleteToken(userId: number): Promise<number> {
+  private async deleteToken(userId: string): Promise<number> {
     return this.redis.del(userId.toString());
   }
 }
