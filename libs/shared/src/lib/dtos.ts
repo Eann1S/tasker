@@ -1,25 +1,8 @@
-export type LoginDto = {
-  email: string;
-  password: string;
-};
-
-export type RegisterDto = {
-    username: string;
-} & LoginDto;
-
-export type JwtDto = {
-  access_token: string;
-  refresh_token: string;
-}
-
-export type JwtPayload = {
-  sub: string;
-  exp: number;
-  iat: number;
-};
-
-export type UserDto = {
-  id: string;
-  username: string;
-  email: string;
-}
+export * from './dtos/login.dto';
+export * from './dtos/register.dto';
+export * from './dtos/jwt.dto';
+export * from './dtos/jwt.payload.dto';
+export * from './dtos/user.dto';
+export * from './dtos/createTask.dto';
+export * from './dtos/updateTask.dto';
+export * from './dtos/task.dto';

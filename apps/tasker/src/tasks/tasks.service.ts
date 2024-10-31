@@ -25,9 +25,9 @@ export class TasksService {
       return await this.prisma.task.findUnique({
         where: { id },
       });
-    } catch(error) {
+    } catch (error) {
       Logger.error(error);
-      throw new NotFoundException(`task with id ${id} not found`)
+      throw new NotFoundException(`task with id ${id} not found`);
     }
   }
 
@@ -38,21 +38,21 @@ export class TasksService {
         where: { id },
         data,
       });
-    } catch(error) {
+    } catch (error) {
       Logger.error(error);
-      throw new NotFoundException(`task with id ${id} not found`)
+      throw new NotFoundException(`task with id ${id} not found`);
     }
   }
 
   async deleteTask(id: string) {
     try {
       Logger.debug(`Deleting task with id: ${id}`);
-      return await this.prisma.task.delete({
+      await this.prisma.task.delete({
         where: { id },
       });
-    } catch(error) {
+    } catch (error) {
       Logger.error(error);
-      throw new NotFoundException(`task with id ${id} not found`)
+      throw new NotFoundException(`task with id ${id} not found`);
     }
   }
 }

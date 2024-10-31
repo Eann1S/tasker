@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
-import { RegisterDto, LoginDto } from '@tasker/shared';
+import { RegisterDto, LoginDto, UserDto, JwtDto } from '@tasker/shared';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -17,26 +18,32 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() registerDto: RegisterDto) {
+  @ApiCreatedResponse({ description: 'User registered successfully', type: UserDto })
+  async register(@Body() registerDto: RegisterDto): Promise<UserDto> {
     return this.authService.register(registerDto);
   }
 
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
+  @ApiOkResponse({ description: 'User logged in successfully', type: JwtDto })
+  async login(@Body() loginDto: LoginDto): Promise<JwtDto> {
     return this.authService.login(loginDto);
   }
 
+  @ApiBearerAuth()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'User logged out successfully' })
   async logout(@Request() req: { userId: string }) {
     return this.authService.logout(req.userId);
   }
 
+  @ApiBearerAuth()
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Request() req: { userId: number, token: string }) {
+  @ApiOkResponse({ description: 'User refreshed tokens successfully', type: JwtDto })
+  async refreshToken(@Request() req: { userId: number, token: string }): Promise<JwtDto> {
     return this.authService.refreshToken(req.token);
   }
 }

@@ -49,7 +49,7 @@ export class AuthService {
     }
     
     const tokens = await this.generateTokens(user.id);
-    await this.storeToken(user.id, tokens.refresh_token, this.ttlRefreshToken);
+    await this.storeToken(user.id, tokens.refreshToken, this.ttlRefreshToken);
     Logger.log(`Login successful for ${email}`);
     return tokens;
   }
@@ -89,8 +89,8 @@ export class AuthService {
   private async generateTokens(userId: string): Promise<JwtDto> {
     const payload = { sub: userId };
     return {
-      access_token: await this.generateAccessToken(payload),
-      refresh_token: await this.generateRefreshToken(payload),
+      accessToken: await this.generateAccessToken(payload),
+      refreshToken: await this.generateRefreshToken(payload),
     };
   }
 
