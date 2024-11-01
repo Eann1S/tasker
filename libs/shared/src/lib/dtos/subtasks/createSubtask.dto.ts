@@ -1,9 +1,7 @@
-import { OmitType } from '@nestjs/swagger';
+import { IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { SubtaskDto } from './subtask.dto';
 
-export class CreateSubtaskDto extends OmitType(SubtaskDto, [
-  'id',
-  'taskId',
-  'createdAt',
-  'updatedAt',
-] as const) {}
+export class CreateSubtaskDto extends IntersectionType(
+  PickType(SubtaskDto, ['title'] as const),
+  PartialType(PickType(SubtaskDto, ['status'] as const))
+) {}

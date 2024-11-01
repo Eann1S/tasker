@@ -10,7 +10,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, TaskDto, UpdateTaskDto } from '@tasker/shared';
+import { CreateLabelDto, CreateTaskDto, TaskDto, UpdateTaskDto } from '@tasker/shared';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -22,14 +22,14 @@ import {
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @Post()
+  @Post(':userId')
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({
     description: 'The task has been successfully created.',
     type: TaskDto,
   })
-  async createTask(@Body() data: CreateTaskDto): Promise<TaskDto> {
-    return this.tasksService.createTask(data);
+  async createTask(@Param('userId') userId: string, @Body() data: CreateTaskDto): Promise<TaskDto> {
+    return this.tasksService.createTask(userId, data);
   }
 
   @Get('/user/:userId')
@@ -72,5 +72,45 @@ export class TasksController {
   })
   async deleteTask(@Param('id') id: string): Promise<void> {
     await this.tasksService.deleteTask(id);
+  }
+
+  @Post(':id/labels')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOkResponse({
+    description: 'The labels have been successfully created for the task.',
+    type: TaskDto,
+  })
+  async createLabelsForTask(
+    @Param('id') id: string,
+    @Body() labels: CreateLabelDto[]
+  ): Promise<TaskDto> {
+    return this.tasksService.createLabelsForTask(id, labels);
+  }
+
+
+  @Put(':id/labels')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'The labels have been successfully assigned to the task.',
+    type: TaskDto,
+  })
+  async assignLabelsToTask(
+    @Param('id') id: string,
+    @Body() labelIds: string[]
+  ): Promise<TaskDto> {
+    return this.tasksService.assignLabelsToTask(id, labelIds);
+  }
+
+  @Delete(':id/labels')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'The labels have been successfully removed from the task.',
+    type: TaskDto,
+  })
+  async removeLabelsToTask(
+    @Param('id') id: string,
+    @Body() labelIds: string[]
+  ): Promise<TaskDto> {
+    return this.tasksService.removeLabelsFromTask(id, labelIds);
   }
 }

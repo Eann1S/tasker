@@ -11,3 +11,6 @@ export * from './dtos/tasks/task.dto';
 export * from './dtos/subtasks/createSubtask.dto';
 export * from './dtos/subtasks/updateSubtask.dto';
 export * from './dtos/subtasks/subtask.dto';
+
+export * from './dtos/labels/createLabel.dto';
+export * from './dtos/labels/label.dto';

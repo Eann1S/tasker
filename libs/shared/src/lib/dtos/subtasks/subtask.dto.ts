@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskStatus } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class SubtaskDto {
   @ApiProperty()
   id!: string;
 
+  @IsNotEmpty()
   @ApiProperty()
   title!: string;
 
@@ -15,7 +16,7 @@ export class SubtaskDto {
   @IsEnum(TaskStatus)
   @IsOptional()
   @ApiProperty({ enum: TaskStatus, default: TaskStatus.todo })
-  status?: TaskStatus;
+  status!: TaskStatus;
 
   @ApiProperty()
   createdAt!: Date;

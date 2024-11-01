@@ -37,6 +37,7 @@ model Task {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   subtasks    Subtask[]
+  labels      Label[]
 
   @@index([creatorId])
 }
@@ -65,3 +66,8 @@ model Subtask {
   @@index([taskId])
 }
 
+model Label {
+  id          String        @id @default(uuid())
+  name        String
+  tasks       Task[]
+}
