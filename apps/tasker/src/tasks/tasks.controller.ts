@@ -38,8 +38,8 @@ export class TasksController {
     description: 'The tasks for user have been successfully retrieved.',
     type: [TaskDto],
   })
-  async findAllForUser(@Param('userId') userId: string): Promise<TaskDto[]> {
-    return this.tasksService.findAllForUser(userId);
+  async getTasksForUser(@Param('userId') userId: string): Promise<TaskDto[]> {
+    return this.tasksService.getTasksForUser(userId);
   }
 
   @Get(':id')
