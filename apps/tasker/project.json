@@ -21,6 +21,14 @@
           "buildTarget": "tasker:build:production"
         }
       }
+    },
+    "container": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "engine": "docker",
+        "context": "dist/apps/tasker",
+        "file": "apps/tasker/Dockerfile"
+      }
     }
   }
 }

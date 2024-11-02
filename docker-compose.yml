@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  tasker:
+    image: tasker-tasker
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: tasker
+    restart: always
+    environment:
+     - REDIS_URL=redis://redis:6379
+     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    env_file:
+      - ./.env
+    ports:
+      - '5000:5000'
+
   db:
     image: postgres:alpine3.17
     container_name: db
@@ -13,7 +28,10 @@ services:
       - '5432:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
+
   redis:
+    hostname: redis
+    container_name: redis
     image: redis:7.2-rc-alpine3.18
     ports:
       - "6379:6379"
