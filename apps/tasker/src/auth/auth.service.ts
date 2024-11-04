@@ -1,6 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import * as bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import {
   LoginDto,
@@ -8,25 +8,23 @@ import {
   JwtPayload,
   RegisterDto,
   UserDto,
+  RedisService,
 } from '@tasker/shared';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
 
 @Injectable()
 export class AuthService {
-  private readonly saltOrRounds = +process.env.SALT_OR_ROUNDS;
   private readonly ttlRefreshToken = +process.env.JWT_REFRESH_EXPIRATION_MILLIS;
   constructor(
     private userService: UsersService,
     private jwtService: JwtService,
-    @InjectRedis() private readonly redis: Redis
+    private redisService: RedisService
   ) {}
 
   async register(registerDto: RegisterDto): Promise<UserDto> {
     const { email, username, password } = registerDto;
     Logger.log(`Registration attempt for ${email}`);
 
-    const hashedPassword = await bcrypt.hash(password, this.saltOrRounds);
+    const hashedPassword = await argon2.hash(password);
     const user = await this.userService.createUser({
       email,
       username,
@@ -47,16 +45,14 @@ export class AuthService {
       Logger.error(`Invalid credentials for ${email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
-    
+
     const tokens = await this.generateTokens(user.id);
     await this.storeToken(user.id, tokens.refreshToken, this.ttlRefreshToken);
     Logger.log(`Login successful for ${email}`);
     return tokens;
   }
 
-  async logout(
-    userId: string
-  ): Promise<void> {
+  async logout(userId: string): Promise<void> {
     await this.deleteToken(userId);
     Logger.log(`Logout successful for id: ${userId}`);
   }
@@ -83,7 +79,7 @@ export class AuthService {
     password: string,
     hashedPassword: string
   ): Promise<boolean> {
-    return bcrypt.compare(password, hashedPassword);
+    return argon2.verify(hashedPassword, password);
   }
 
   private async generateTokens(userId: string): Promise<JwtDto> {
@@ -107,14 +103,14 @@ export class AuthService {
   }
 
   private async storeToken(userId: string, token: string, ttl: number) {
-    return this.redis.set(userId.toString(), token, 'EX', ttl);
+    return this.redisService.set(userId.toString(), token, ttl);
   }
 
   private async doesTokenExist(userId: string): Promise<boolean> {
-    return !!(await this.redis.exists(userId.toString()));
+    return !!(await this.redisService.exists(userId.toString()));
   }
 
   private async deleteToken(userId: string): Promise<number> {
-    return this.redis.del(userId.toString());
+    return this.redisService.del(userId.toString());
   }
 }

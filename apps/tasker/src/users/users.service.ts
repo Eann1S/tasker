@@ -38,7 +38,7 @@ export class UsersService {
 
   async getProfileByUserId(id: string): Promise<UserDto> {
     Logger.debug(`Getting user profile for user id: ${id}`);
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.getUserById(id);
     delete user.password;
     return user;
   }

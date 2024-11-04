@@ -63,7 +63,7 @@ export class SubtasksService {
   async deleteSubtask(id: string) {
     try {
       Logger.debug(`Deleting subtask with id: ${id}`);
-      await this.prisma.subtask.delete({
+      return await this.prisma.subtask.delete({
         where: {
           id,
         },

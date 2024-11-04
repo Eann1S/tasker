@@ -67,7 +67,7 @@ export class TasksService {
   async deleteTask(id: string) {
     try {
       Logger.debug(`Deleting task with id: ${id}`);
-      await this.prisma.task.delete({
+      return await this.prisma.task.delete({
         where: { id },
       });
     } catch (error) {
