@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   tasker:
-    image: tasker-tasker
+    image: tasker
     build:
       dockerfile: Dockerfile
       context: .
