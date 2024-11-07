@@ -29,7 +29,7 @@ export class UsersService {
   async getUserById(id: string) {
     try {
       Logger.debug(`Getting user with id: ${id}`);
-      return await this.prisma.user.findUnique({ where: { id } });
+      return await this.prisma.user.findUniqueOrThrow({ where: { id } });
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`User with id ${id} not found.`);
@@ -46,7 +46,7 @@ export class UsersService {
   async getUserByEmail(email: string) {
     try {
       Logger.debug(`Getting user with email: ${email}`);
-      return await this.prisma.user.findUnique({ where: { email } });
+      return await this.prisma.user.findUniqueOrThrow({ where: { email } });
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`User with email ${email} not found.`);

@@ -8,3 +8,10 @@ export async function registerUser(user: User) {
     password: user.password,
   });
 }
+
+export async function login(user: User) {
+  return axios.post('/auth/login', {
+    email: user.email,
+    password: user.password,
+  });
+}
