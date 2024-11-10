@@ -8,9 +8,15 @@ import {
   Param,
   Post,
   Put,
+  Request,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateLabelDto, CreateTaskDto, TaskDto, UpdateTaskDto } from '@tasker/shared';
+import {
+  CreateLabelDto,
+  CreateTaskDto,
+  TaskDto,
+  UpdateTaskDto,
+} from '@tasker/shared';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -22,14 +28,17 @@ import {
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @Post(':userId')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({
     description: 'The task has been successfully created.',
     type: TaskDto,
   })
-  async createTask(@Param('userId') userId: string, @Body() data: CreateTaskDto): Promise<TaskDto> {
-    return this.tasksService.createTask(userId, data);
+  async createTask(
+    @Request() req: { userId: string },
+    @Body() data: CreateTaskDto
+  ): Promise<TaskDto> {
+    return this.tasksService.createTask(req.userId, data);
   }
 
   @Get('/user/:userId')
@@ -87,7 +96,6 @@ export class TasksController {
     return this.tasksService.createLabelsForTask(id, labels);
   }
 
-
   @Put(':id/labels')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
@@ -107,7 +115,7 @@ export class TasksController {
     description: 'The labels have been successfully removed from the task.',
     type: TaskDto,
   })
-  async removeLabelsToTask(
+  async removeLabelsFromTask(
     @Param('id') id: string,
     @Body() labelIds: string[]
   ): Promise<TaskDto> {

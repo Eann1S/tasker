@@ -4,12 +4,23 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateLabelDto, CreateTaskDto, PrismaService, UpdateTaskDto } from '@tasker/shared';
+import {
+  CreateLabelDto,
+  CreateTaskDto,
+  PrismaService,
+  UpdateTaskDto,
+} from '@tasker/shared';
 
 @Injectable()
 export class TasksService {
   private include = {
-    creator: true,
+    creator: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+      },
+    },
     subtasks: true,
     labels: true,
   };
@@ -83,14 +94,16 @@ export class TasksService {
         where: { id: taskId },
         data: {
           labels: {
-            create: labels.map(label => ({ ...label }))
-          }
+            create: labels.map((label) => ({ ...label })),
+          },
         },
         include: this.include,
       });
     } catch (error) {
       Logger.error(error);
-      throw new InternalServerErrorException(`Failed to create labels for task ${taskId}`);
+      throw new InternalServerErrorException(
+        `Failed to create labels for task ${taskId}`
+      );
     }
   }
 
@@ -108,13 +121,13 @@ export class TasksService {
       });
     } catch (error) {
       Logger.error(error);
-      throw new InternalServerErrorException('Failed to assign labels to task');
+      throw new InternalServerErrorException(`Failed to assign labels to task ${id}`);
     }
   }
 
   async removeLabelsFromTask(id: string, labelIds: string[]) {
     try {
-      Logger.debug(`Removing labels to task with id: ${id}`);
+      Logger.debug(`Removing labels from task with id: ${id}`);
       return await this.prisma.task.update({
         where: { id },
         data: {
@@ -126,7 +139,7 @@ export class TasksService {
       });
     } catch (error) {
       Logger.error(error);
-      throw new InternalServerErrorException('Failed to remove labels to task');
+      throw new InternalServerErrorException(`Failed to remove labels from task ${id}`);
     }
   }
 }
