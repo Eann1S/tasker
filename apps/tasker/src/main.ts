@@ -9,6 +9,7 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.enableCors();
 
   const config = new DocumentBuilder()
     .setTitle('tasker')
