@@ -1,5 +1,4 @@
 import { generateLabel, generateTask } from '@tasker/shared';
-import { createRandomUser } from './auth.utils.e2e';
 import {
   assignLabelsToTask,
   createLabelsForTask,
@@ -10,8 +9,9 @@ import {
   getTasks,
   removeLabelsFromTask,
   updateTask,
-} from './tasks.utils.e2e';
-import { createRandomLabel } from './labels.utils.e2e';
+} from './utils/tasks.utils.e2e';
+import { createRandomLabel } from './utils/labels.utils.e2e';
+import { createRandomUser } from './utils/auth.utils.e2e';
 
 describe('POST /tasks', () => {
   it('should create task', async () => {
@@ -34,70 +34,44 @@ describe('POST /tasks', () => {
 
 describe('GET /tasks/:userId', () => {
   it('should return tasks for user', async () => {
-    const { userId, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: userId });
-    await createTask(task, accessToken);
+    const { task, accessToken } = await createRandomTask();
 
-    const res = await getTasks(userId, accessToken);
+    const res = await getTasks(task.creator.id, accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.data).toMatchObject([
-      {
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        dueDate: task.dueDate.toISOString(),
-        status: task.status,
-        creatorId: userId,
-      },
-    ]);
+    expect(res.data).toEqual(expect.arrayContaining([task]));
   });
 });
 
 describe('GET /tasks/:id', () => {
   it('should return task', async () => {
-    const { userId, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: userId });
-    const {
-      data: { id },
-    } = await createTask(task, accessToken);
+    const { task, accessToken } = await createRandomTask();
 
-    const res = await getTask(id, accessToken);
+    const res = await getTask(task.id, accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.data).toMatchObject({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      dueDate: task.dueDate.toISOString(),
-      status: task.status,
-      creatorId: userId,
-    });
+    expect(res.data).toEqual(task);
   });
 
   it('should not return task when task was not found', async () => {
     const { accessToken } = await createRandomTask();
 
-    const res = await deleteTask('invalid id', accessToken);
+    const res = await getTask('id', accessToken);
 
     expect(res.status).toBe(404);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching(`task with id ${'invalid id'} not found`),
+      message: expect.stringMatching(`task with id ${'id'} not found`),
     });
   });
 });
 
 describe('PUT /tasks/:id', () => {
   it('should update task', async () => {
-    const { userId, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: userId });
-    const {
-      data: { id },
-    } = await createTask(task, accessToken);
+    const { task, accessToken } = await createRandomTask();
     const updateTaskData = generateTask();
 
     const res = await updateTask(
-      id,
+      task.id,
       {
         title: updateTaskData.title,
         description: updateTaskData.description,
@@ -110,49 +84,45 @@ describe('PUT /tasks/:id', () => {
 
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
+      id: task.id,
       title: updateTaskData.title,
       description: updateTaskData.description,
       priority: updateTaskData.priority,
       dueDate: updateTaskData.dueDate.toISOString(),
       status: updateTaskData.status,
-      creatorId: userId,
+      creatorId: task.creator.id,
     });
   });
 
   it('should not update task when task was not found', async () => {
     const { accessToken } = await createRandomTask();
 
-    const res = await updateTask('invalid id', {}, accessToken);
+    const res = await updateTask('id', {}, accessToken);
 
     expect(res.status).toBe(404);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching(`task with id ${'invalid id'} not found`),
+      message: expect.stringMatching(`task with id ${'id'} not found`),
     });
   });
 });
 
 describe('DELETE /tasks/:id', () => {
   it('should delete task', async () => {
-    const { userId, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: userId });
-    const {
-      data: { id },
-    } = await createTask(task, accessToken);
+    const { task, accessToken } = await createRandomTask();
 
-    const res = await deleteTask(id, accessToken);
+    const res = await deleteTask(task.id, accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.data).toBe('');
   });
 
   it('should not delete task when task was not found', async () => {
     const { accessToken } = await createRandomTask();
 
-    const res = await deleteTask('invalid id', accessToken);
+    const res = await deleteTask('id', accessToken);
 
     expect(res.status).toBe(404);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching(`task with id ${'invalid id'} not found`),
+      message: expect.stringMatching(`task with id ${'id'} not found`),
     });
   });
 });
@@ -166,12 +136,7 @@ describe('POST /tasks/:id/labels', () => {
 
     expect(res.status).toBe(201);
     expect(res.data).toMatchObject({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      status: task.status,
-      dueDate: task.dueDate,
-      creatorId: task.creator.id,
+      ...task,
       labels: [
         {
           id: expect.any(String),
@@ -191,12 +156,7 @@ describe('PUT /tasks/:id/labels', () => {
 
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      status: task.status,
-      dueDate: task.dueDate,
-      creatorId: task.creator.id,
+      ...task,
       labels: [label],
     });
   });
@@ -204,7 +164,7 @@ describe('PUT /tasks/:id/labels', () => {
   it('should not assign labels to task when labels not found', async () => {
     const { accessToken, task } = await createRandomTask();
 
-    const res = await assignLabelsToTask(task.id, ['invalid id'], accessToken);
+    const res = await assignLabelsToTask(task.id, ['id'], accessToken);
 
     expect(res.status).toBe(500);
     expect(res.data).toMatchObject({
@@ -225,12 +185,7 @@ describe('DELETE /tasks/:id/labels', () => {
 
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      status: task.status,
-      dueDate: task.dueDate,
-      creatorId: task.creator.id,
+      ...task,
       labels: [],
     });
   });

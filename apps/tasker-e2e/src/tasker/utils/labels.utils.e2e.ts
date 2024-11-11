@@ -20,6 +20,14 @@ export async function createRandomLabel(token: string) {
   return data;
 }
 
+export async function getLabels(token: string) {
+  return axios.get<LabelDto[]>('/labels', getHeaders(token));
+}
+
+export async function deleteLabel(id: string, token: string) {
+  return axios.delete<void>(`/labels/${id}`, getHeaders(token));
+}
+
 function getHeaders(token: string) {
   return {
     headers: {

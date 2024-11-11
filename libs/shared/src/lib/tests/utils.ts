@@ -1,4 +1,4 @@
-import { Label, Task, TaskPriority, TaskStatus, User } from '@prisma/client';
+import { Label, Subtask, Task, TaskPriority, TaskStatus, User } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
 export function generateUser(overwrites: Partial<User> = {}): User {
@@ -40,6 +40,25 @@ export function generateTask(overwrites: Partial<Task> = {}): Task {
     priority,
     creatorId,
     dueDate,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export function generateSubtask(overwrites: Partial<Subtask> = {}): Subtask {
+  const {
+    id = faker.string.uuid(),
+    taskId = faker.string.uuid(),
+    title = faker.string.sample(),
+    status = faker.helpers.enumValue(TaskStatus),
+    createdAt = faker.date.anytime(),
+    updatedAt = faker.date.anytime(),
+  } = overwrites;
+  return {
+    id,
+    taskId,
+    title,
+    status,
     createdAt,
     updatedAt,
   };

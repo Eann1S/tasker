@@ -1,6 +1,6 @@
 import { generateUser } from '@tasker/shared';
-import { login, logout, refresh_token, registerUser } from './auth.utils.e2e';
 import { Redis } from 'ioredis';
+import { registerUser, login, logout, refresh_token } from './utils/auth.utils.e2e';
 
 describe('POST /auth/register', () => {
   it('should register a user', async () => {

@@ -3,7 +3,6 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   CreateSubtaskDto,
@@ -70,7 +69,7 @@ export class SubtasksService {
       });
     } catch (error) {
       Logger.error(error);
-      throw new UnauthorizedException(`subtask with id ${id} not found`);
+      throw new NotFoundException(`subtask with id ${id} not found`);
     }
   }
 }

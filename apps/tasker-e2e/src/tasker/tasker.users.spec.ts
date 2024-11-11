@@ -1,6 +1,6 @@
 import { generateUser } from '@tasker/shared';
-import { registerUser, login } from './auth.utils.e2e';
-import { getProfile } from './users.utils.e2e';
+import { getProfile } from './utils/users.utils.e2e';
+import { registerUser, login } from './utils/auth.utils.e2e';
 
 describe('GET /users/me', () => {
   it("should return user's profile", async () => {

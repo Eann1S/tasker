@@ -51,7 +51,7 @@ export class TasksService {
   async getTask(id: string) {
     try {
       Logger.debug(`Finding task with id: ${id}`);
-      return await this.prisma.task.findUnique({
+      return await this.prisma.task.findUniqueOrThrow({
         where: { id },
         include: this.include,
       });
