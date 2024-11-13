@@ -36,35 +36,50 @@ export class AuthService {
     return user;
   }
 
-  async login(loginDto: LoginDto): Promise<JwtDto> {
+  async login(loginDto: LoginDto, res): Promise<JwtDto> {
     const { email, password } = loginDto;
     Logger.log(`Login attempt for ${email}`);
 
     const user = await this.userService.getUserByEmail(email);
-    if (!(await this.isPasswordValid(password, user.password))) {
+    const passwordValid = await this.isPasswordValid(password, user.password);
+    if (!passwordValid) {
       Logger.error(`Invalid credentials for ${email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id);
-    await this.storeToken(user.id, tokens.refreshToken, this.ttlRefreshToken);
+    const accessToken = await this.generateAccessToken(user.id);
+    await this.createAndSaveRefreshToken(res, user.id);
+
     Logger.log(`Login successful for ${email}`);
-    return tokens;
+    return { accessToken };
   }
 
-  async logout(userId: string): Promise<void> {
+  async logout(userId: string, res): Promise<void> {
     await this.deleteToken(userId);
+    await this.removeRefreshTokenFromCookie(res);
     Logger.log(`Logout successful for id: ${userId}`);
   }
 
-  async refreshToken(refresh_token: string): Promise<JwtDto> {
+  async refreshTokens(req, res): Promise<JwtDto> {
+    const refreshToken = req.cookies.refreshToken;
     try {
-      const payload = await this.validateToken(refresh_token);
-      if (!(await this.doesTokenExist(payload.sub))) {
+      if (!refreshToken) {
+        throw new UnauthorizedException('Refresh token missing');
+      }
+      
+      const payload = await this.validateToken(refreshToken);
+      const tokenExists = await this.doesTokenExist(payload.sub);
+      if (!tokenExists) {
         throw new UnauthorizedException('Refresh token does not exist');
       }
+
+      const accessToken = await this.generateAccessToken(payload.sub);
+      await this.createAndSaveRefreshToken(res, payload.sub);
+
       Logger.log(`Refresh tokens successful for id: ${payload.sub}`);
-      return this.generateTokens(payload.sub);
+      return {
+        accessToken: accessToken,
+      };
     } catch (error) {
       Logger.error(error);
       throw new UnauthorizedException('Invalid refresh token');
@@ -82,23 +97,41 @@ export class AuthService {
     return argon2.verify(hashedPassword, password);
   }
 
-  private async generateTokens(userId: string): Promise<JwtDto> {
-    const payload = { sub: userId };
-    return {
-      accessToken: await this.generateAccessToken(payload),
-      refreshToken: await this.generateRefreshToken(payload),
-    };
+  private generateAccessToken(sub: string) {
+    return this.jwtService.signAsync(
+      { sub },
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
   }
 
-  private generateAccessToken(payload: Omit<JwtPayload, 'exp' | 'iat'>) {
-    return this.jwtService.signAsync(payload, {
-      expiresIn: process.env.JWT_EXPIRATION,
+  private async createAndSaveRefreshToken(res, sub: string) {
+    const refreshToken = await this.generateRefreshToken(sub);
+    await this.storeRefreshTokenAsCookie(res, refreshToken);
+    await this.storeToken(sub, refreshToken, this.ttlRefreshToken);
+  }
+
+  private generateRefreshToken(sub: string) {
+    return this.jwtService.signAsync(
+      { sub },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
+    );
+  }
+
+  private async storeRefreshTokenAsCookie(response, refreshToken: string) {
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      path: '/',
     });
   }
 
-  private generateRefreshToken(payload: Omit<JwtPayload, 'exp' | 'iat'>) {
-    return this.jwtService.signAsync(payload, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRATION,
+  private async removeRefreshTokenFromCookie(response) {
+    response.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      path: '/',
     });
   }
 

@@ -2,7 +2,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import {
-  createUser,
+  generateUser,
   LoginDto,
   RedisService,
   RegisterDto,
@@ -19,6 +19,7 @@ describe('AuthService', () => {
   let jwtService: Mocked<JwtService>;
   let redis: Mocked<RedisService>;
   let user: Prisma.UserGetPayload<Prisma.UserDefaultArgs>;
+  let res;
 
   beforeAll(async () => {
     const { unit, unitRef } = await TestBed.solitary(AuthService).compile();
@@ -30,7 +31,11 @@ describe('AuthService', () => {
   });
 
   beforeEach(async () => {
-    user = createUser();
+    user = generateUser();
+    res = {
+      cookie: jest.fn(),
+      clearCookie: jest.fn(),
+    };
   });
 
   it('should be defined', () => {
@@ -87,24 +92,27 @@ describe('AuthService', () => {
       usersService.getUserByEmail.mockResolvedValue(user);
       jwtService.signAsync.mockResolvedValue('token');
 
-      const actual = await service.login(loginDto);
+      const actual = await service.login(loginDto, res);
 
-      expect(actual).toMatchObject({
-        accessToken: 'token',
-        refreshToken: 'token',
-      });
+      expect(actual).toMatchObject({ accessToken: 'token' });
       expect(usersService.getUserByEmail).toHaveBeenCalledWith(loginDto.email);
       expect(redis.set).toHaveBeenCalledWith(
         user.id.toString(),
         'token',
         expect.any(Number)
       );
+      expect(res.cookie).toHaveBeenCalledWith(
+        'refreshToken',
+        'token',
+        expect.any(Object)
+      );
     });
 
     it('should not login if password is invalid', async () => {
+      loginDto.password = 'invalid_password';
       usersService.getUserByEmail.mockResolvedValue(user);
 
-      expect(service.login(loginDto)).rejects.toThrow(
+      expect(service.login(loginDto, res)).rejects.toThrow(
         new UnauthorizedException('Invalid credentials')
       );
     });
@@ -114,24 +122,35 @@ describe('AuthService', () => {
     it('should logout', async () => {
       redis.del.mockResolvedValue(1);
 
-      await service.logout(user.id.toString());
+      await service.logout(user.id.toString(), res);
 
       expect(redis.del).toHaveBeenCalledWith(user.id.toString());
+      expect(res.clearCookie).toHaveBeenCalledWith(
+        'refreshToken',
+        expect.any(Object)
+      );
     });
   });
 
   describe('refreshToken', () => {
+    let req;
+
+    beforeEach(async () => {
+      req = {
+        cookies: {
+          refreshToken: 'refresh_token',
+        },
+      };
+    });
+
     it('should refresh token', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
-      jwtService.signAsync.mockResolvedValueOnce('token');
+      jwtService.signAsync.mockResolvedValue('token');
       redis.exists.mockResolvedValue(true);
 
-      const actual = await service.refreshToken('refresh_token');
+      const actual = await service.refreshTokens(req, res);
 
-      expect(actual).toMatchObject({
-        accessToken: 'token',
-        refreshToken: 'token',
-      });
+      expect(actual).toMatchObject({ accessToken: 'token' });
       expect(jwtService.verifyAsync).toHaveBeenCalledWith('refresh_token');
       expect(redis.exists).toHaveBeenCalledWith(user.id.toString());
     });
@@ -140,7 +159,7 @@ describe('AuthService', () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
       redis.exists.mockResolvedValue(false);
 
-      expect(service.refreshToken('refresh_token')).rejects.toThrow(
+      expect(service.refreshTokens(req, res)).rejects.toThrow(
         new UnauthorizedException('Invalid refresh token')
       );
     });

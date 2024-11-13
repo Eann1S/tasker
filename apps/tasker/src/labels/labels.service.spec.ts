@@ -1,5 +1,5 @@
 import { LabelsService } from './labels.service';
-import { createLabel, PrismaService } from '@tasker/shared';
+import { generateLabel, PrismaService } from '@tasker/shared';
 import { Mocked, TestBed } from '@suites/unit';
 import { Label } from '@prisma/client';
 import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -21,7 +21,7 @@ describe('LabelsService', () => {
   });
 
   beforeEach(async () => {
-    label = createLabel();
+    label = generateLabel();
   });
 
   describe('create label', () => {

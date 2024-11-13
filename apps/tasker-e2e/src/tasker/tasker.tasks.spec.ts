@@ -15,8 +15,8 @@ import { createRandomUser } from './utils/auth.utils.e2e';
 
 describe('POST /tasks', () => {
   it('should create task', async () => {
-    const { userId, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: userId });
+    const { user, accessToken } = await createRandomUser();
+    const task = generateTask({ creatorId: user.id });
 
     const res = await createTask(task, accessToken);
 
@@ -27,7 +27,7 @@ describe('POST /tasks', () => {
       priority: task.priority,
       dueDate: task.dueDate.toISOString(),
       status: task.status,
-      creatorId: userId,
+      creatorId: user.id,
     });
   });
 });

@@ -23,8 +23,8 @@ export async function createTask(task: Task, token: string) {
 }
 
 export async function createRandomTask() {
-  const { userId, accessToken } = await createRandomUser();
-  const task = generateTask({ creatorId: userId });
+  const { user, accessToken } = await createRandomUser();
+  const task = generateTask({ creatorId: user.id });
   const { data } = await createTask(task, accessToken);
   return { task: data, accessToken };
 }

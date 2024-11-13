@@ -11,7 +11,7 @@ import {
   PrismaService,
   CreateTaskDto,
   UpdateTaskDto,
-  createLabel,
+  generateLabel,
 } from '@tasker/shared';
 
 describe('TasksService', () => {
@@ -19,7 +19,13 @@ describe('TasksService', () => {
   let prisma: Mocked<PrismaService>;
   let task: Task;
   const include = {
-    creator: true,
+    creator: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+      },
+    },
     subtasks: true,
     labels: true,
   };
@@ -88,12 +94,12 @@ describe('TasksService', () => {
 
   describe('get tasks', () => {
     it('should return task', async () => {
-      prisma.task.findUnique.mockResolvedValue(task);
+      prisma.task.findUniqueOrThrow.mockResolvedValue(task);
 
       const actual = await service.getTask(task.id);
 
       expect(actual).toEqual(task);
-      expect(prisma.task.findUnique).toHaveBeenCalledWith({
+      expect(prisma.task.findUniqueOrThrow).toHaveBeenCalledWith({
         where: {
           id: task.id,
         },
@@ -102,7 +108,7 @@ describe('TasksService', () => {
     });
 
     it('should not return task when it does not exist', async () => {
-      prisma.task.findUnique.mockRejectedValue(new Error());
+      prisma.task.findUniqueOrThrow.mockRejectedValue(new Error());
 
       expect(service.getTask(task.id)).rejects.toThrow(
         new NotFoundException(`task with id ${task.id} not found`)
@@ -189,7 +195,7 @@ describe('TasksService', () => {
     let labelIds = [];
 
     beforeEach(() => {
-      labels = [createLabel(), createLabel()];
+      labels = [generateLabel(), generateLabel()];
       labelIds = labels.map((label) => label.id);
     });
 

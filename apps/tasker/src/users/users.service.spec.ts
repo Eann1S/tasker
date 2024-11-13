@@ -1,5 +1,5 @@
 import { UsersService } from './users.service';
-import { createUser, PrismaService } from '@tasker/shared';
+import { generateUser, PrismaService } from '@tasker/shared';
 import { TestBed, Mocked } from '@suites/unit';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
@@ -22,7 +22,7 @@ describe('UsersService', () => {
   });
 
   beforeEach(async () => {
-    user = createUser();
+    user = generateUser();
   });
 
   describe('Create user', () => {
@@ -54,7 +54,7 @@ describe('UsersService', () => {
 
   describe('Get users', () => {
     it('should return users', async () => {
-      const users = [createUser(), createUser(), createUser()];
+      const users = [generateUser(), generateUser(), generateUser()];
       prisma.user.findMany.mockResolvedValue(users);
 
       const actual = await service.getAllUsers();
@@ -63,18 +63,18 @@ describe('UsersService', () => {
     });
 
     it('should return user by id', async () => {
-      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.user.findUniqueOrThrow.mockResolvedValue(user);
 
       const actual = await service.getUserById(user.id);
 
       expect(actual).toEqual(user);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: user.id },
       });
     });
 
     it('should not return user when it was not found', async () => {
-      prisma.user.findUnique.mockRejectedValue(new Error('User not found'));
+      prisma.user.findUniqueOrThrow.mockRejectedValue(new Error('User not found'));
 
       expect(service.getUserById(user.id)).rejects.toThrow(
         new NotFoundException(`User with id ${user.id} not found.`)
@@ -82,13 +82,13 @@ describe('UsersService', () => {
     });
 
     it('should return user profile', async () => {
-      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.user.findUniqueOrThrow.mockResolvedValue(user);
 
       const actual = await service.getProfileByUserId(user.id);
 
       const expected = _.omit(user, ['password']);
       expect(actual).toEqual(expected);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: user.id },
       });
     });

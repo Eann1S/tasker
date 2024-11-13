@@ -11,46 +11,52 @@ export async function registerUser(user: User) {
 }
 
 export async function login(user: User) {
-  return axios.post<JwtDto>('/auth/login', {
+  const res = await axios.post<JwtDto>('/auth/login', {
     email: user.email,
     password: user.password,
   });
+  return res;
 }
 
 export async function createUser(user: User) {
   const {
-    data: { id },
+    data: createdUser,
   } = await registerUser(user);
-  const { data } = await login(user);
-  return { ...data, id };
+  const res = await login(user);
+  const cookies = res.headers['set-cookie'][0];
+  return { ...res.data, cookies, user: createdUser };
 }
 
 export async function createRandomUser() {
   const user = generateUser();
-  const {
-    data: { id },
-  } = await registerUser(user);
-  const { data } = await login(user);
-  return { ...data, userId: id };
+  return createUser(user);
 }
 
-export async function logout(accessToken: string) {
-  return axios.post<void>('/auth/logout', {}, getHeaders(accessToken));
-}
-
-export async function refresh_token(refreshToken: string) {
-  return axios.post<JwtDto>(
-    '/auth/refresh-token',
+export async function logout(accessToken: string, cookie) {
+  return axios.post<void>(
+    '/auth/logout',
     {},
-    getHeaders(refreshToken)
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Cookie: cookie,
+      },
+      withCredentials: true,
+    }
   );
 }
 
-function getHeaders(token: string) {
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
+export async function refreshTokens(cookie) {
+  return axios.post<JwtDto>(
+    '/auth/refresh-tokens',
+    {},
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie,
+      },
+      withCredentials: true,
+    }
+  );
 }

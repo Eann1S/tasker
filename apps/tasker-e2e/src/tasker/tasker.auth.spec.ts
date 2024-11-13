@@ -1,6 +1,6 @@
 import { generateUser } from '@tasker/shared';
 import { Redis } from 'ioredis';
-import { registerUser, login, logout, refresh_token } from './utils/auth.utils.e2e';
+import { registerUser, login, logout, refreshTokens, createRandomUser } from './utils/auth.utils.e2e';
 
 describe('POST /auth/register', () => {
   it('should register a user', async () => {
@@ -39,8 +39,9 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
-      refreshToken: expect.any(String),
     });
+    const cookies = res.headers['set-cookie'][0];
+    expect(cookies).toContain('refreshToken');
   });
 
   it('should not login when user does not exist', async () => {
@@ -72,24 +73,20 @@ describe('POST /auth/login', () => {
 
 describe('POST /auth/logout', () => {
   it('should logout', async () => {
-    const user = generateUser();
-    await registerUser(user);
-    const {
-      data: { accessToken },
-    } = await login(user);
+    const {accessToken, cookies} = await createRandomUser();
 
-    const res = await logout(accessToken);
+    const res = await logout(accessToken, cookies);
 
     expect(res.status).toBe(200);
     expect(res.data).toBe('');
+    const cookie = await extractCookie(res.headers['set-cookie'][0], 'refreshToken');
+    expect(cookie).toBe('');
   });
 
   it('should not logout if accessToken is invalid', async () => {
-    const user = generateUser();
-    await registerUser(user);
-    await login(user);
+    const {cookies} = await createRandomUser();
 
-    const res = await logout('invalid token');
+    const res = await logout('invalid token', cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
@@ -100,46 +97,35 @@ describe('POST /auth/logout', () => {
 
 describe('POST /auth/refresh-token', () => {
   it('should refresh token', async () => {
-    const user = generateUser();
-    await registerUser(user);
-    const {
-      data: { refreshToken },
-    } = await login(user);
+    const {cookies} = await createRandomUser();
 
-    const res = await refresh_token(refreshToken);
+    const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
-      refreshToken: expect.any(String),
     });
+    const cookie = await extractCookie(res.headers['set-cookie'][0], 'refreshToken');
+    expect(cookie).toEqual(expect.any(String));
   });
 
   it('should not refresh token if refresh token is invalid', async () => {
-    const user = generateUser();
-    await registerUser(user);
-    await login(user);
+    await createRandomUser();
 
-    const res = await refresh_token('invalid token');
+    const res = await refreshTokens('invalid');
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching('Token is invalid'),
+      message: expect.stringMatching('Invalid refresh token'),
     });
   });
 
-  it('should not refresh token if refresh token does not exist', async () => {
+  it('should not refresh token if refresh tokens does not exist', async () => {
     const redis = new Redis(process.env.REDIS_URL);
-    const user = generateUser();
-    const {
-      data: { id },
-    } = await registerUser(user);
-    const {
-      data: { refreshToken },
-    } = await login(user);
-    redis.del(id);
+    const {cookies, user} = await createRandomUser();
+    redis.del(user.id);
 
-    const res = await refresh_token(refreshToken);
+    const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
@@ -147,3 +133,7 @@ describe('POST /auth/refresh-token', () => {
     });
   });
 });
+
+async function extractCookie(cookies: string, cookieName: string) {
+  return cookies.split('; ').find(row => row.startsWith(`${cookieName}=`)).split('=')[1];
+}
