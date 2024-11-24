@@ -1,6 +1,13 @@
 import { generateUser } from '@tasker/shared';
 import { Redis } from 'ioredis';
-import { registerUser, login, logout, refreshTokens, createRandomUser } from './utils/auth.utils.e2e';
+import {
+  registerUser,
+  login,
+  logout,
+  refreshTokens,
+  createRandomUser,
+} from './utils/auth.utils.e2e';
+import { AxiosResponse } from 'axios';
 
 describe('POST /auth/register', () => {
   it('should register a user', async () => {
@@ -40,8 +47,10 @@ describe('POST /auth/login', () => {
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
     });
-    const cookies = res.headers['set-cookie'][0];
-    expect(cookies).toContain('refreshToken');
+    const accessToken = await extractCookieFromResponse(res, 'accessToken');
+    const refreshToken = await extractCookieFromResponse(res, 'refreshToken');
+    expect(accessToken).toEqual(expect.any(String));
+    expect(refreshToken).toEqual(expect.any(String));
   });
 
   it('should not login when user does not exist', async () => {
@@ -73,18 +82,19 @@ describe('POST /auth/login', () => {
 
 describe('POST /auth/logout', () => {
   it('should logout', async () => {
-    const {accessToken, cookies} = await createRandomUser();
+    const { accessToken, cookies } = await createRandomUser();
 
     const res = await logout(accessToken, cookies);
 
     expect(res.status).toBe(200);
-    expect(res.data).toBe('');
-    const cookie = await extractCookie(res.headers['set-cookie'][0], 'refreshToken');
-    expect(cookie).toBe('');
+    const resAccessToken = await extractCookieFromResponse(res, 'accessToken');
+    const refreshToken = await extractCookieFromResponse(res, 'refreshToken');
+    expect(resAccessToken).toEqual('');
+    expect(refreshToken).toEqual('');
   });
 
   it('should not logout if accessToken is invalid', async () => {
-    const {cookies} = await createRandomUser();
+    const { cookies } = await createRandomUser();
 
     const res = await logout('invalid token', cookies);
 
@@ -97,7 +107,7 @@ describe('POST /auth/logout', () => {
 
 describe('POST /auth/refresh-token', () => {
   it('should refresh token', async () => {
-    const {cookies} = await createRandomUser();
+    const { cookies } = await createRandomUser();
 
     const res = await refreshTokens(cookies);
 
@@ -105,35 +115,72 @@ describe('POST /auth/refresh-token', () => {
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
     });
-    const cookie = await extractCookie(res.headers['set-cookie'][0], 'refreshToken');
-    expect(cookie).toEqual(expect.any(String));
+    const accessToken = await extractCookieFromResponse(res, 'accessToken');
+    const refreshToken = await extractCookieFromResponse(res, 'refreshToken');
+    expect(accessToken).toEqual(expect.any(String));
+    expect(refreshToken).toEqual(expect.any(String));
   });
 
   it('should not refresh token if refresh token is invalid', async () => {
-    await createRandomUser();
+    let { cookies } = await createRandomUser();
+    cookies = await replaceCookie(cookies, 'refreshToken', 'invalid');
 
-    const res = await refreshTokens('invalid');
+    const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching('Invalid refresh token'),
+      message: expect.stringMatching('Token is invalid'),
     });
   });
 
-  it('should not refresh token if refresh tokens does not exist', async () => {
+  it('should not refresh token if refresh token is missing', async () => {
+    let { cookies } = await createRandomUser();
+    cookies = await replaceCookie(cookies, 'refreshToken', '');
+
+    const res = await refreshTokens(cookies);
+
+    expect(res.status).toBe(401);
+    expect(res.data).toMatchObject({
+      message: expect.stringMatching('Refresh token is missing'),
+    });
+  });
+
+  it('should not refresh token if refresh tokens does not exist in cache', async () => {
     const redis = new Redis(process.env.REDIS_URL);
-    const {cookies, user} = await createRandomUser();
+    const { cookies, user } = await createRandomUser();
     redis.del(user.id);
 
     const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
-      message: expect.stringMatching('Invalid refresh token'),
+      message: expect.stringMatching('Refresh token does not exist in cache'),
     });
   });
 });
 
-async function extractCookie(cookies: string, cookieName: string) {
-  return cookies.split('; ').find(row => row.startsWith(`${cookieName}=`)).split('=')[1];
+async function extractCookieFromResponse<T, K>(
+  res: AxiosResponse<T, K>,
+  cookieName: string
+) {
+  const cookies = res.headers['set-cookie'];
+  return extractCookie(cookies, cookieName);
+}
+
+async function extractCookie(cookies: string[], cookieName: string) {
+  return cookies
+    .flatMap((str) => str.split('; '))
+    .find((row) => row.startsWith(`${cookieName}=`))
+    .split('=')[1];
+}
+
+async function replaceCookie(
+  cookies: string[],
+  cookieName: string,
+  value: string
+) {
+  return cookies
+    .flatMap((str) => str.split('; '))
+    .filter((row) => row.startsWith(`${cookieName}=`))
+    .map(() => `${cookieName}=${value}`);
 }
