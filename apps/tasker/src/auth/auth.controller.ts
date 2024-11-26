@@ -4,8 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
-  Res,
+  Request,
+  Response,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -35,7 +35,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'User logged in successfully', type: JwtDto })
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res): Promise<JwtDto> {
+  async login(@Body() loginDto: LoginDto, @Response({ passthrough: true }) res): Promise<JwtDto> {
     return this.authService.login(loginDto, res);
   }
 
@@ -44,8 +44,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'User logged out successfully' })
   async logout(
-    @Req() req: { userId: string },
-    @Res({ passthrough: true }) res
+    @Request() req: { userId: string },
+    @Response({ passthrough: true }) res
   ) {
     return this.authService.logout(req.userId, res);
   }
@@ -58,8 +58,8 @@ export class AuthController {
     type: JwtDto,
   })
   async refreshTokens(
-    @Req() req,
-    @Res({ passthrough: true }) res
+    @Request() req,
+    @Response({ passthrough: true }) res
   ): Promise<JwtDto> {
     return this.authService.refreshTokens(req, res);
   }

@@ -2,9 +2,11 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { TokenExpiredError } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { JwtPayload } from '@tasker/shared';
@@ -15,7 +17,7 @@ export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.isRoutePublic(context);
+    const isPublic = this.determineIfRouteIsPublic(context);
     if (isPublic) {
       return true;
     }
@@ -25,9 +27,17 @@ export class AuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException('Access token is missing');
     }
-    const payload: JwtPayload = await this.authService.validateToken(token);
-    request['userId'] = payload.sub;
-    request['token'] = token;
+    try {
+      const payload: JwtPayload = await this.authService.validateToken(token);
+      request['userId'] = payload.sub;
+      request['token'] = token;
+    } catch (error) {
+      Logger.error(error);
+      if (error instanceof TokenExpiredError) {
+        throw new UnauthorizedException('Token expired');
+      }
+      throw new UnauthorizedException('Token is invalid');
+    }
     return true;
   }
 
@@ -36,7 +46,7 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
-  private isRoutePublic(context: ExecutionContext) {
+  private determineIfRouteIsPublic(context: ExecutionContext) {
     return this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),

@@ -23,7 +23,7 @@ export async function createUser(user: User) {
     data: createdUser,
   } = await registerUser(user);
   const res = await login(user);
-  const cookies = res.headers['set-cookie'];
+  const cookies = res.headers['set-cookie'][0];
   return { ...res.data, cookies, user: createdUser };
 }
 
@@ -47,7 +47,7 @@ export async function logout(accessToken: string, cookie) {
   );
 }
 
-export async function refreshTokens(cookie: string[]) {
+export async function refreshTokens(cookie) {
   return axios.post<JwtDto>(
     '/auth/refresh-tokens',
     {},

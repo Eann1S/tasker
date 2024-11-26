@@ -102,11 +102,6 @@ describe('AuthService', () => {
         expect.any(Number)
       );
       expect(res.cookie).toHaveBeenCalledWith(
-        'accessToken',
-        'token',
-        expect.any(Object)
-      );
-      expect(res.cookie).toHaveBeenCalledWith(
         'refreshToken',
         'token',
         expect.any(Object)
@@ -130,10 +125,6 @@ describe('AuthService', () => {
       await service.logout(user.id.toString(), res);
 
       expect(redis.del).toHaveBeenCalledWith(user.id.toString());
-      expect(res.clearCookie).toHaveBeenCalledWith(
-        'accessToken',
-        expect.any(Object)
-      );
       expect(res.clearCookie).toHaveBeenCalledWith(
         'refreshToken',
         expect.any(Object)
@@ -164,23 +155,12 @@ describe('AuthService', () => {
       expect(redis.exists).toHaveBeenCalledWith(user.id.toString());
     });
 
-    it('should not refresh token when it is missing in cookies', async () => {
-      jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
-      jwtService.signAsync.mockResolvedValue('token');
-      redis.exists.mockResolvedValue(true);
-      req.cookies = {};
-
-      expect(service.refreshTokens(req, res)).rejects.toThrow(
-        new UnauthorizedException('Refresh token is missing')
-      );
-    });
-
-    it('should not refresh token when it does not exist in cache', async () => {
+    it('should not refresh token when it does not exist', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
       redis.exists.mockResolvedValue(false);
 
       expect(service.refreshTokens(req, res)).rejects.toThrow(
-        new UnauthorizedException('Refresh token does not exist in cache')
+        new UnauthorizedException('Invalid refresh token')
       );
     });
   });
@@ -199,7 +179,7 @@ describe('AuthService', () => {
       jwtService.verifyAsync.mockRejectedValue(new Error('token is invalid'));
 
       expect(service.validateToken('token')).rejects.toThrow(
-        new Error('Token is invalid')
+        new Error('token is invalid')
       );
     });
   });
