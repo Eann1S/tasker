@@ -19,12 +19,9 @@ export async function login(user: User) {
 }
 
 export async function createUser(user: User) {
-  const {
-    data: createdUser,
-  } = await registerUser(user);
+  const { data: createdUser } = await registerUser(user);
   const res = await login(user);
-  const cookies = res.headers['set-cookie'][0];
-  return { ...res.data, cookies, user: createdUser };
+  return { ...res.data, user: createdUser };
 }
 
 export async function createRandomUser() {
@@ -32,7 +29,7 @@ export async function createRandomUser() {
   return createUser(user);
 }
 
-export async function logout(accessToken: string, cookie) {
+export async function logout(accessToken: string) {
   return axios.post<void>(
     '/auth/logout',
     {},
@@ -40,23 +37,19 @@ export async function logout(accessToken: string, cookie) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        Cookie: cookie,
       },
-      withCredentials: true,
     }
   );
 }
 
-export async function refreshTokens(cookie) {
+export async function refreshTokens(refreshToken?: string) {
   return axios.post<JwtDto>(
     '/auth/refresh-tokens',
-    {},
+    { refreshToken },
     {
       headers: {
         'Content-Type': 'application/json',
-        Cookie: cookie,
       },
-      withCredentials: true,
     }
   );
 }

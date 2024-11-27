@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as argon2 from 'argon2';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import {
   LoginDto,
   JwtDto,
@@ -36,7 +36,7 @@ export class AuthService {
     return user;
   }
 
-  async login(loginDto: LoginDto, res): Promise<JwtDto> {
+  async login(loginDto: LoginDto): Promise<JwtDto> {
     const { email, password } = loginDto;
     Logger.log(`Login attempt for ${email}`);
 
@@ -48,46 +48,47 @@ export class AuthService {
     }
 
     const accessToken = await this.generateAccessToken(user.id);
-    await this.createAndSaveRefreshToken(res, user.id);
+    const refreshToken = await this.generateAndStoreRefreshToken(user.id);
 
     Logger.log(`Login successful for ${email}`);
-    return { accessToken };
+    return { accessToken, refreshToken };
   }
 
-  async logout(userId: string, res): Promise<void> {
+  async logout(userId: string): Promise<void> {
     await this.deleteToken(userId);
-    await this.removeRefreshTokenFromCookie(res);
     Logger.log(`Logout successful for id: ${userId}`);
   }
 
-  async refreshTokens(req, res): Promise<JwtDto> {
-    const refreshToken = req.cookies.refreshToken;
-    try {
-      if (!refreshToken) {
-        throw new UnauthorizedException('Refresh token missing');
-      }
-      
-      const payload = await this.validateToken(refreshToken);
-      const tokenExists = await this.doesTokenExist(payload.sub);
-      if (!tokenExists) {
-        throw new UnauthorizedException('Refresh token does not exist');
-      }
-
-      const accessToken = await this.generateAccessToken(payload.sub);
-      await this.createAndSaveRefreshToken(res, payload.sub);
-
-      Logger.log(`Refresh tokens successful for id: ${payload.sub}`);
-      return {
-        accessToken: accessToken,
-      };
-    } catch (error) {
-      Logger.error(error);
-      throw new UnauthorizedException('Invalid refresh token');
+  async refreshTokens(refreshToken?: string): Promise<JwtDto> {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is missing');
     }
+    
+    const payload = await this.validateToken(refreshToken);
+    const tokenExists = await this.doesTokenExist(payload.sub);
+    if (!tokenExists) {
+      throw new UnauthorizedException('Refresh token does not exist');
+    }
+
+    const accessToken = await this.generateAccessToken(payload.sub);
+    const newRefreshToken = await this.generateAndStoreRefreshToken(payload.sub);
+
+    Logger.log(`Refresh tokens successful for id: ${payload.sub}`);
+    return {
+      accessToken, refreshToken: newRefreshToken
+    };
   }
 
   async validateToken(token: string): Promise<JwtPayload | never> {
-    return this.jwtService.verifyAsync(token);
+    try {
+      return await this.jwtService.verifyAsync(token);
+    } catch (error) {
+      Logger.error(error);
+      if (error instanceof TokenExpiredError) {
+        throw new UnauthorizedException('Token expired');
+      }
+      throw new UnauthorizedException('Token is invalid');
+    }
   }
 
   private async isPasswordValid(
@@ -104,10 +105,10 @@ export class AuthService {
     );
   }
 
-  private async createAndSaveRefreshToken(res, sub: string) {
+  private async generateAndStoreRefreshToken(sub: string) {
     const refreshToken = await this.generateRefreshToken(sub);
-    await this.storeRefreshTokenAsCookie(res, refreshToken);
     await this.storeToken(sub, refreshToken, this.ttlRefreshToken);
+    return refreshToken;
   }
 
   private generateRefreshToken(sub: string) {
@@ -115,24 +116,6 @@ export class AuthService {
       { sub },
       { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
     );
-  }
-
-  private async storeRefreshTokenAsCookie(response, refreshToken: string) {
-    response.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      path: '/',
-    });
-  }
-
-  private async removeRefreshTokenFromCookie(response) {
-    response.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      path: '/',
-    });
   }
 
   private async storeToken(userId: string, token: string, ttl: number) {

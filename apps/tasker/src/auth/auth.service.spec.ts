@@ -19,7 +19,6 @@ describe('AuthService', () => {
   let jwtService: Mocked<JwtService>;
   let redis: Mocked<RedisService>;
   let user: Prisma.UserGetPayload<Prisma.UserDefaultArgs>;
-  let res;
 
   beforeAll(async () => {
     const { unit, unitRef } = await TestBed.solitary(AuthService).compile();
@@ -32,10 +31,6 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     user = generateUser();
-    res = {
-      cookie: jest.fn(),
-      clearCookie: jest.fn(),
-    };
   });
 
   it('should be defined', () => {
@@ -92,7 +87,7 @@ describe('AuthService', () => {
       usersService.getUserByEmail.mockResolvedValue(user);
       jwtService.signAsync.mockResolvedValue('token');
 
-      const actual = await service.login(loginDto, res);
+      const actual = await service.login(loginDto);
 
       expect(actual).toMatchObject({ accessToken: 'token' });
       expect(usersService.getUserByEmail).toHaveBeenCalledWith(loginDto.email);
@@ -101,18 +96,13 @@ describe('AuthService', () => {
         'token',
         expect.any(Number)
       );
-      expect(res.cookie).toHaveBeenCalledWith(
-        'refreshToken',
-        'token',
-        expect.any(Object)
-      );
     });
 
     it('should not login if password is invalid', async () => {
       loginDto.password = 'invalid_password';
       usersService.getUserByEmail.mockResolvedValue(user);
 
-      expect(service.login(loginDto, res)).rejects.toThrow(
+      expect(service.login(loginDto)).rejects.toThrow(
         new UnauthorizedException('Invalid credentials')
       );
     });
@@ -122,45 +112,40 @@ describe('AuthService', () => {
     it('should logout', async () => {
       redis.del.mockResolvedValue(1);
 
-      await service.logout(user.id.toString(), res);
+      await service.logout(user.id.toString());
 
       expect(redis.del).toHaveBeenCalledWith(user.id.toString());
-      expect(res.clearCookie).toHaveBeenCalledWith(
-        'refreshToken',
-        expect.any(Object)
-      );
     });
   });
 
   describe('refreshToken', () => {
-    let req;
-
-    beforeEach(async () => {
-      req = {
-        cookies: {
-          refreshToken: 'refresh_token',
-        },
-      };
-    });
-
     it('should refresh token', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
       jwtService.signAsync.mockResolvedValue('token');
       redis.exists.mockResolvedValue(true);
 
-      const actual = await service.refreshTokens(req, res);
+      const actual = await service.refreshTokens('refresh_token');
 
-      expect(actual).toMatchObject({ accessToken: 'token' });
+      expect(actual).toMatchObject({ accessToken: 'token', refreshToken: 'token' });
       expect(jwtService.verifyAsync).toHaveBeenCalledWith('refresh_token');
       expect(redis.exists).toHaveBeenCalledWith(user.id.toString());
+    });
+
+    it('should not refresh token when it is missing', async () => {
+      jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
+      redis.exists.mockResolvedValue(false);
+
+      expect(service.refreshTokens()).rejects.toThrow(
+        new UnauthorizedException('Refresh token is missing')
+      );
     });
 
     it('should not refresh token when it does not exist', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: user.id.toString() });
       redis.exists.mockResolvedValue(false);
 
-      expect(service.refreshTokens(req, res)).rejects.toThrow(
-        new UnauthorizedException('Invalid refresh token')
+      expect(service.refreshTokens('invalid')).rejects.toThrow(
+        new UnauthorizedException('Refresh token does not exist')
       );
     });
   });
@@ -176,10 +161,10 @@ describe('AuthService', () => {
     });
 
     it('should throw error when token is invalid', async () => {
-      jwtService.verifyAsync.mockRejectedValue(new Error('token is invalid'));
+      jwtService.verifyAsync.mockRejectedValue(new Error('Token is invalid'));
 
       expect(service.validateToken('token')).rejects.toThrow(
-        new Error('token is invalid')
+        new Error('Token is invalid')
       );
     });
   });
