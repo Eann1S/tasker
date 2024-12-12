@@ -9,17 +9,19 @@ import {
   PrismaService,
   UpdateSubtaskDto,
 } from '@tasker/shared';
+import { mapSubtaskToDto } from './subtasks.mappings';
 
 @Injectable()
 export class SubtasksService {
   constructor(private prisma: PrismaService) {}
 
-  async createSubtask(taskId: string, subtask: CreateSubtaskDto) {
+  async createSubtask(taskId: string, dto: CreateSubtaskDto) {
     try {
       Logger.debug(`Creating subtask for task with id: ${taskId}`);
-      return await this.prisma.subtask.create({
+
+      const subtask = await this.prisma.subtask.create({
         data: {
-          ...subtask,
+          ...dto,
           task: {
             connect: {
               id: taskId,
@@ -27,6 +29,9 @@ export class SubtasksService {
           }
         },
       });
+
+      Logger.debug(`Subtask created with id: ${subtask.id}`);
+      return mapSubtaskToDto(subtask);
     } catch (error) {
       Logger.error(error);
       throw new InternalServerErrorException('Failed to create subtask');
@@ -35,25 +40,31 @@ export class SubtasksService {
   async getSubtasksForTask(taskId: string) {
     try {
       Logger.debug(`Getting subtasks for task with id: ${taskId}`);
-      return await this.prisma.subtask.findMany({
+
+      const subtasks = await this.prisma.subtask.findMany({
         where: {
           taskId,
         },
       });
+      return subtasks.map(mapSubtaskToDto);
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`task with id ${taskId} not found`);
     }
   }
-  async updateSubtask(id: string, subtask: UpdateSubtaskDto) {
+  async updateSubtask(id: string, dto: UpdateSubtaskDto) {
     try {
       Logger.debug(`Updating subtask with id: ${id}`);
-      return await this.prisma.subtask.update({
+
+      const subtask = await this.prisma.subtask.update({
         where: {
           id,
         },
-        data: subtask,
+        data: dto,
       });
+
+      Logger.debug(`Subtask updated with id: ${subtask.id}`);
+      return mapSubtaskToDto(subtask);
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`subtask with id ${id} not found`);
@@ -62,11 +73,14 @@ export class SubtasksService {
   async deleteSubtask(id: string) {
     try {
       Logger.debug(`Deleting subtask with id: ${id}`);
-      return await this.prisma.subtask.delete({
+
+      await this.prisma.subtask.delete({
         where: {
           id,
         },
       });
+
+      Logger.debug(`Subtask deleted with id: ${id}`);
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`subtask with id ${id} not found`);

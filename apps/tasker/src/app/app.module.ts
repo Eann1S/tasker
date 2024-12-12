@@ -5,9 +5,10 @@ import { SharedModule } from '@tasker/shared';
 import { TasksModule } from '../tasks/tasks.module';
 import { SubtasksModule } from '../subtasks/subtasks.module';
 import { LabelsModule } from '../labels/labels.module';
+import { TeamsModule } from '../teams/teams.module';
 
 @Module({
-  imports: [AuthModule, TasksModule, SubtasksModule, LabelsModule, SharedModule],
+  imports: [AuthModule, TasksModule, SubtasksModule, LabelsModule, TeamsModule, SharedModule],
   controllers: [],
   providers: [],
 })

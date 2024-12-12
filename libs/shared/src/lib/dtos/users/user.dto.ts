@@ -9,4 +9,10 @@ export class UserDto {
 
     @ApiProperty()
     email!: string;
+
+    @ApiProperty()
+    createdAt!: Date;
+
+    @ApiProperty()
+    updatedAt!: Date;
 }

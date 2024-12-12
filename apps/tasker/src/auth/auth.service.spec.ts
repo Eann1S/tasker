@@ -2,7 +2,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import {
-  generateUser,
+  generateUserData,
   LoginDto,
   RedisService,
   RegisterDto,
@@ -30,7 +30,7 @@ describe('AuthService', () => {
   });
 
   beforeEach(async () => {
-    user = generateUser();
+    user = generateUserData();
   });
 
   it('should be defined', () => {

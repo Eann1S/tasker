@@ -1,6 +1,5 @@
 import { TasksService } from './tasks.service';
-import { Task, TaskPriority, TaskStatus } from '@prisma/client';
-import { faker } from '@faker-js/faker/.';
+import { Task, } from '@prisma/client';
 import {
   InternalServerErrorException,
   NotFoundException,
@@ -11,21 +10,17 @@ import {
   PrismaService,
   CreateTaskDto,
   UpdateTaskDto,
-  generateLabel,
+  generateLabelData,
+  generateTaskData,
 } from '@tasker/shared';
+import { mapTaskToDto } from './tasks.mappings';
 
 describe('TasksService', () => {
   let service: TasksService;
   let prisma: Mocked<PrismaService>;
   let task: Task;
   const include = {
-    creator: {
-      select: {
-        id: true,
-        email: true,
-        username: true,
-      },
-    },
+    creator: true,
     subtasks: true,
     labels: true,
   };
@@ -42,17 +37,7 @@ describe('TasksService', () => {
   });
 
   beforeEach(async () => {
-    task = {
-      id: faker.string.uuid(),
-      title: faker.string.sample(),
-      description: faker.string.sample(),
-      status: faker.helpers.enumValue(TaskStatus),
-      priority: faker.helpers.enumValue(TaskPriority),
-      creatorId: faker.string.uuid(),
-      dueDate: faker.date.future(),
-      createdAt: faker.date.past(),
-      updatedAt: faker.date.past(),
-    };
+    task = generateTaskData();
   });
 
   describe('create task', () => {
@@ -73,7 +58,7 @@ describe('TasksService', () => {
 
       const actual = await service.createTask(task.creatorId, createTaskDto);
 
-      expect(actual).toEqual(task);
+      expect(actual).toEqual(mapTaskToDto(task));
       expect(prisma.task.create).toHaveBeenCalledWith({
         data: {
           ...createTaskDto,
@@ -98,7 +83,7 @@ describe('TasksService', () => {
 
       const actual = await service.getTask(task.id);
 
-      expect(actual).toEqual(task);
+      expect(actual).toEqual(mapTaskToDto(task));
       expect(prisma.task.findUniqueOrThrow).toHaveBeenCalledWith({
         where: {
           id: task.id,
@@ -120,10 +105,24 @@ describe('TasksService', () => {
 
       const actual = await service.getTasksForUser(task.creatorId);
 
-      expect(actual).toEqual([task]);
+      expect(actual).toEqual([expect.objectContaining(mapTaskToDto(task))]);
       expect(prisma.task.findMany).toHaveBeenCalledWith({
         where: {
           creatorId: task.creatorId,
+        },
+        include,
+      });
+    });
+
+    it('should return tasks for team', async () => {
+      prisma.task.findMany.mockResolvedValue([task]);
+
+      const actual = await service.getTasksForTeam(task.teamId);
+
+      expect(actual).toEqual([expect.objectContaining(mapTaskToDto(task))]);
+      expect(prisma.task.findMany).toHaveBeenCalledWith({
+        where: {
+          teamId: task.teamId,
         },
         include,
       });
@@ -148,7 +147,7 @@ describe('TasksService', () => {
 
       const actual = await service.updateTask(task.id, updateTaskDto);
 
-      expect(actual).toEqual(task);
+      expect(actual).toEqual(mapTaskToDto(task));
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: {
           id: task.id,
@@ -171,9 +170,8 @@ describe('TasksService', () => {
     it('should delete task', async () => {
       prisma.task.delete.mockResolvedValue(task);
 
-      const actual = await service.deleteTask(task.id);
+      await service.deleteTask(task.id);
 
-      expect(actual).toEqual(task);
       expect(prisma.task.delete).toHaveBeenCalledWith({
         where: {
           id: task.id,
@@ -195,16 +193,15 @@ describe('TasksService', () => {
     let labelIds = [];
 
     beforeEach(() => {
-      labels = [generateLabel(), generateLabel()];
+      labels = [generateLabelData(), generateLabelData()];
       labelIds = labels.map((label) => label.id);
     });
 
     it('should create labels for task', async () => {
       prisma.task.update.mockResolvedValue(task);
 
-      const actual = await service.createLabelsForTask(task.id, labels);
+      await service.createLabelsForTask(task.id, labels);
 
-      expect(actual).toEqual(task);
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: {
           id: task.id,
@@ -221,9 +218,8 @@ describe('TasksService', () => {
     it('should assign labels to task', async () => {
       prisma.task.update.mockResolvedValue(task);
 
-      const actual = await service.assignLabelsToTask(task.id, labelIds);
+      await service.assignLabelsToTask(task.id, labelIds);
 
-      expect(actual).toEqual(task);
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: {
           id: task.id,
@@ -240,9 +236,8 @@ describe('TasksService', () => {
     it('should remove labels from task', async () => {
       prisma.task.update.mockResolvedValue(task);
 
-      const actual = await service.removeLabelsFromTask(task.id, labelIds);
+      await service.removeLabelsFromTask(task.id, labelIds);
 
-      expect(actual).toEqual(task);
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: {
           id: task.id,

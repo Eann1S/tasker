@@ -5,15 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateLabelDto, PrismaService } from '@tasker/shared';
+import { mapLabelToDto } from './labels.mappings';
 
 @Injectable()
 export class LabelsService {
   constructor(private prisma: PrismaService) {}
 
-  async createLabel(label: CreateLabelDto) {
+  async createLabel(dto: CreateLabelDto) {
     try {
       Logger.debug('Creating label');
-      return await this.prisma.label.create({ data: label });
+
+      const label = await this.prisma.label.create({ data: dto });
+
+      Logger.debug(`Label with id ${label.id} created`);
+      return mapLabelToDto(label);
     } catch (error) {
       Logger.error(error);
       throw new InternalServerErrorException('Failed to create label');
@@ -23,7 +28,9 @@ export class LabelsService {
   async getLabels() {
     try {
       Logger.debug('Getting labels');
-      return await this.prisma.label.findMany();
+
+      const labels = await this.prisma.label.findMany();
+      return labels.map(mapLabelToDto);
     } catch (error) {
       Logger.error(error);
       throw new InternalServerErrorException('An error occured');
@@ -33,7 +40,10 @@ export class LabelsService {
   async deleteLabel(id: string) {
     try {
       Logger.debug(`Deleting label with id ${id}`);
-      return await this.prisma.label.delete({ where: { id } });
+
+      await this.prisma.label.delete({ where: { id } });
+
+      Logger.debug(`Label with id ${id} deleted`);
     } catch (error) {
       Logger.error(error);
       throw new NotFoundException(`Label with id ${id} not found`);

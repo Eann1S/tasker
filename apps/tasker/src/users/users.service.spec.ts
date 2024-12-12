@@ -1,5 +1,5 @@
 import { UsersService } from './users.service';
-import { generateUser, PrismaService } from '@tasker/shared';
+import { generateUserData, PrismaService } from '@tasker/shared';
 import { TestBed, Mocked } from '@suites/unit';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
@@ -22,7 +22,7 @@ describe('UsersService', () => {
   });
 
   beforeEach(async () => {
-    user = generateUser();
+    user = generateUserData();
   });
 
   describe('Create user', () => {
@@ -54,7 +54,7 @@ describe('UsersService', () => {
 
   describe('Get users', () => {
     it('should return users', async () => {
-      const users = [generateUser(), generateUser(), generateUser()];
+      const users = [generateUserData(), generateUserData(), generateUserData()];
       prisma.user.findMany.mockResolvedValue(users);
 
       const actual = await service.getAllUsers();

@@ -22,6 +22,7 @@ model User {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   tasks       Task[]
+  teams       TeamMember[]
   
   @@index([email])
 }
@@ -39,6 +40,8 @@ model Task {
   updatedAt   DateTime      @updatedAt
   subtasks    Subtask[]
   labels      Label[]
+  team        Team?         @relation(fields: [teamId], references: [id])
+  teamId      String?
 
   @@index([creatorId])
 }
@@ -71,4 +74,27 @@ model Label {
   id          String        @id @default(uuid())
   name        String
   tasks       Task[]
+}
+
+model Team {
+  id          String        @id @default(uuid())
+  name        String
+  members     TeamMember[]
+  tasks       Task[]
+}
+
+model TeamMember {
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  role        TeamRole
+  joinedAt    DateTime      @default(now())
+
+  @@id([teamId, userId])
+}
+
+enum TeamRole {
+  admin
+  member
 }

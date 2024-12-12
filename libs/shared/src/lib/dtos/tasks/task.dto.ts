@@ -1,9 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '@prisma/client';
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { SubtaskDto } from '../subtasks/subtask.dto';
 import { LabelDto } from '../labels/label.dto';
-import { UserDto } from '../user.dto';
+import { UserDto } from '../users/user.dto';
 
 export class TaskDto {
   @ApiProperty()
@@ -14,8 +14,8 @@ export class TaskDto {
   title!: string;
 
   @IsOptional()
-  @ApiProperty()
-  description!: string | null;
+  @ApiPropertyOptional()
+  description?: string;
 
   @ApiProperty({ type: UserDto })
   creator!: UserDto;
@@ -32,8 +32,8 @@ export class TaskDto {
 
   @IsOptional()
   @IsDateString()
-  @ApiProperty()
-  dueDate!: Date | null;
+  @ApiPropertyOptional()
+  dueDate?: Date;
 
   @ApiProperty()
   createdAt!: Date;
@@ -42,8 +42,11 @@ export class TaskDto {
   updatedAt!: Date;
 
   @ApiProperty({ isArray: true, default: [] })
-  subtasks!: SubtaskDto[];
+  subtasks?: SubtaskDto[];
 
   @ApiProperty({ isArray: true, default: [] })
-  labels!: LabelDto[];
+  labels?: LabelDto[];
+
+  @ApiProperty()
+  teamId?: string;
 }

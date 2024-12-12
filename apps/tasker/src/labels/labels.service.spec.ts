@@ -1,5 +1,5 @@
 import { LabelsService } from './labels.service';
-import { generateLabel, PrismaService } from '@tasker/shared';
+import { generateLabelData, PrismaService } from '@tasker/shared';
 import { Mocked, TestBed } from '@suites/unit';
 import { Label } from '@prisma/client';
 import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -21,7 +21,7 @@ describe('LabelsService', () => {
   });
 
   beforeEach(async () => {
-    label = generateLabel();
+    label = generateLabelData();
   });
 
   describe('create label', () => {
@@ -59,9 +59,11 @@ describe('LabelsService', () => {
     it('should delete label', async () => {
       prisma.label.delete.mockResolvedValue(label);
 
-      const actual = await service.deleteLabel(label.id);
+      await service.deleteLabel(label.id);
 
-      expect(actual).toEqual(label);
+      expect(prisma.label.delete).toHaveBeenCalledWith({
+        where: { id: label.id },
+      });
     });
 
     it('should not delete label when it does not exist', async () => {

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService, UserDto } from '@tasker/shared';
+import { mapUserToDto } from './users.mappings';
 
 @Injectable()
 export class UsersService {
@@ -39,8 +40,7 @@ export class UsersService {
   async getProfileByUserId(id: string): Promise<UserDto> {
     Logger.debug(`Getting user profile for user id: ${id}`);
     const user = await this.getUserById(id);
-    delete user.password;
-    return user;
+    return mapUserToDto(user);
   }
 
   async getUserByEmail(email: string) {

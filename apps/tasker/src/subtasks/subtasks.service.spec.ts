@@ -140,9 +140,8 @@ describe('SubtasksService', () => {
     it('should delete subtask', async () => {
       prisma.subtask.delete.mockResolvedValue(subtask);
 
-      const actual = await service.deleteSubtask(subtask.id);
+      await service.deleteSubtask(subtask.id);
 
-      expect(actual).toEqual(subtask);
       expect(prisma.subtask.delete).toHaveBeenCalledWith({
         where: {
           id: subtask.id,

@@ -10,6 +10,7 @@ import {
   UserDto,
   RedisService,
 } from '@tasker/shared';
+import { mapUserToDto } from '../users/users.mappings';
 
 @Injectable()
 export class AuthService {
@@ -31,9 +32,8 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    delete user['password'];
     Logger.log(`Registration successful for ${email}`);
-    return user;
+    return mapUserToDto(user);
   }
 
   async login(loginDto: LoginDto): Promise<JwtDto> {

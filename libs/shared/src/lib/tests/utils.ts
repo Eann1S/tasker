@@ -1,7 +1,7 @@
 import { Label, Subtask, Task, TaskPriority, TaskStatus, User } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
-export function generateUser(overwrites: Partial<User> = {}): User {
+export function generateUserData(overwrites: Partial<User> = {}): User {
   const {
     id = faker.string.uuid(),
     email = faker.internet.email(),
@@ -20,7 +20,7 @@ export function generateUser(overwrites: Partial<User> = {}): User {
   };
 }
 
-export function generateTask(overwrites: Partial<Task> = {}): Task {
+export function generateTaskData(overwrites: Partial<Task> = {}): Task {
   const {
     id = faker.string.uuid(),
     title = faker.string.sample(),
@@ -31,6 +31,7 @@ export function generateTask(overwrites: Partial<Task> = {}): Task {
     dueDate = faker.date.future(),
     createdAt = faker.date.anytime(),
     updatedAt = faker.date.anytime(),
+    teamId = faker.string.uuid(),
   } = overwrites;
   return {
     id,
@@ -42,10 +43,11 @@ export function generateTask(overwrites: Partial<Task> = {}): Task {
     dueDate,
     createdAt,
     updatedAt,
+    teamId,
   };
 }
 
-export function generateSubtask(overwrites: Partial<Subtask> = {}): Subtask {
+export function generateSubtaskData(overwrites: Partial<Subtask> = {}): Subtask {
   const {
     id = faker.string.uuid(),
     taskId = faker.string.uuid(),
@@ -64,7 +66,7 @@ export function generateSubtask(overwrites: Partial<Subtask> = {}): Subtask {
   };
 }
 
-export function generateLabel(overwrites: Partial<Label> = {}): Label {
+export function generateLabelData(overwrites: Partial<Label> = {}): Label {
   const { id = faker.string.uuid(), name = faker.string.sample() } = overwrites;
   return {
     id,
