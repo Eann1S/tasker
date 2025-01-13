@@ -1,6 +1,6 @@
 import { Subtask } from '@prisma/client';
 import {
-  generateSubtask,
+  generateSubtaskData,
   SubtaskDto,
   TaskDto,
   UpdateSubtaskDto,
@@ -25,7 +25,7 @@ export async function createSubtask(
 
 export async function createRandomSubtask() {
   const { task, accessToken } = await createRandomTask();
-  const subtask = generateSubtask();
+  const subtask = generateSubtaskData();
   const { data } = await axios.post<SubtaskDto>(
     `/subtasks/${task.id}`,
     {

@@ -1,4 +1,4 @@
-import { Label, Subtask, Task, TaskPriority, TaskStatus, User } from '@prisma/client';
+import { Label, Subtask, Task, TaskPriority, TaskStatus, Team, User } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
 export function generateUserData(overwrites: Partial<User> = {}): User {
@@ -71,5 +71,20 @@ export function generateLabelData(overwrites: Partial<Label> = {}): Label {
   return {
     id,
     name,
+  };
+}
+
+export function generateTeamData(overwrites: Partial<Team> = {}): Team {
+  const {
+    id = faker.string.uuid(),
+    name = faker.string.sample(),
+    createdAt = faker.date.anytime(),
+    updatedAt = faker.date.anytime(),
+  } = overwrites;
+  return {
+    id,
+    name,
+    createdAt,
+    updatedAt,
   };
 }

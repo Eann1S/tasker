@@ -1,4 +1,4 @@
-import { generateSubtask } from '@tasker/shared';
+import { generateSubtaskData } from '@tasker/shared';
 import {
   createRandomTask,
 } from './utils/tasks.utils.e2e';
@@ -13,7 +13,7 @@ import {
 describe('POST /subtasks/:taskId', () => {
   it('should create subtask', async () => {
     const { task, accessToken } = await createRandomTask();
-    const subtask = generateSubtask();
+    const subtask = generateSubtaskData();
 
     const res = await createSubtask(task.id, subtask, accessToken);
 
@@ -39,7 +39,7 @@ describe('GET /subtasks/:taskId', () => {
 describe('PUT /subtasks/:id', () => {
   it('should update subtask', async () => {
     const {subtask, accessToken} = await createRandomSubtask();
-    const updateSubtaskData = generateSubtask();
+    const updateSubtaskData = generateSubtaskData();
 
     const res = await updateSubtask(
       subtask.id,

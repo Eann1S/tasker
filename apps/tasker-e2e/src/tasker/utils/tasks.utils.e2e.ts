@@ -1,7 +1,7 @@
 import { Task } from '@prisma/client';
 import {
   CreateLabelDto,
-  generateTask,
+  generateTaskData,
   TaskDto,
   UpdateTaskDto,
 } from '@tasker/shared';
@@ -24,13 +24,17 @@ export async function createTask(task: Task, token: string) {
 
 export async function createRandomTask() {
   const { user, accessToken } = await createRandomUser();
-  const task = generateTask({ creatorId: user.id });
+  const task = generateTaskData({ creatorId: user.id });
   const { data } = await createTask(task, accessToken);
   return { task: data, accessToken };
 }
 
-export async function getTasks(userId: string, token: string) {
+export async function getTasksForUser(userId: string, token: string) {
   return axios.get<TaskDto[]>(`/tasks/user/${userId}`, getHeaders(token));
+}
+
+export async function getTasksForTeam(teamId: string, token: string) {
+  return axios.get<TaskDto[]>(`/tasks/team/${teamId}`, getHeaders(token));
 }
 
 export async function getTask(taskId: string, token: string) {

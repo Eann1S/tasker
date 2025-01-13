@@ -1,5 +1,5 @@
 import { Label } from '@prisma/client';
-import { generateLabel, LabelDto } from '@tasker/shared';
+import { generateLabelData, LabelDto } from '@tasker/shared';
 import axios from 'axios';
 
 export async function createLabel(label: Label, token: string) {
@@ -11,7 +11,7 @@ export async function createLabel(label: Label, token: string) {
 }
 
 export async function createRandomLabel(token: string) {
-  const label = generateLabel();
+  const label = generateLabelData();
   const { data } = await axios.post<LabelDto>(
     '/labels',
     { name: label.name },

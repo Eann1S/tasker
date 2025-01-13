@@ -51,6 +51,16 @@ export class TasksController {
     return this.tasksService.getTasksForUser(userId);
   }
 
+  @Get('/team/:teamId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: '',
+    type: [TaskDto],
+  })
+  async getTasksForTeam(@Param('teamId') teamId: string): Promise<TaskDto[]> {
+    return this.tasksService.getTasksForTeam(teamId);
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({

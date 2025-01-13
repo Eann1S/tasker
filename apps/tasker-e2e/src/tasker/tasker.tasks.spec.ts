@@ -1,4 +1,4 @@
-import { generateLabel, generateTask } from '@tasker/shared';
+import { generateLabelData, generateTaskData } from '@tasker/shared';
 import {
   assignLabelsToTask,
   createLabelsForTask,
@@ -6,17 +6,19 @@ import {
   createTask,
   deleteTask,
   getTask,
-  getTasks,
+  getTasksForTeam,
+  getTasksForUser,
   removeLabelsFromTask,
   updateTask,
 } from './utils/tasks.utils.e2e';
 import { createRandomLabel } from './utils/labels.utils.e2e';
 import { createRandomUser } from './utils/auth.utils.e2e';
+import { assignTaskToTeam, createRandomTeam } from './utils/teams.utils.e2e';
 
 describe('POST /tasks', () => {
   it('should create task', async () => {
     const { user, accessToken } = await createRandomUser();
-    const task = generateTask({ creatorId: user.id });
+    const task = generateTaskData({ creatorId: user.id });
 
     const res = await createTask(task, accessToken);
 
@@ -27,7 +29,9 @@ describe('POST /tasks', () => {
       priority: task.priority,
       dueDate: task.dueDate.toISOString(),
       status: task.status,
-      creatorId: user.id,
+      creator: {
+        id: user.id,
+      },
     });
   });
 });
@@ -36,10 +40,27 @@ describe('GET /tasks/:userId', () => {
   it('should return tasks for user', async () => {
     const { task, accessToken } = await createRandomTask();
 
-    const res = await getTasks(task.creator.id, accessToken);
+    const res = await getTasksForUser(task.creator.id, accessToken);
 
     expect(res.status).toBe(200);
     expect(res.data).toEqual(expect.arrayContaining([task]));
+  });
+});
+
+describe('GET /tasks/:teamId', () => {
+  it('should return tasks for team', async () => {
+    const { task, accessToken } = await createRandomTask();
+    const { team } = await createRandomTeam();
+    await assignTaskToTeam(team.id, task.id, accessToken);
+
+    const res = await getTasksForTeam(team.id, accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.data).toEqual([
+      expect.objectContaining({
+        id: task.id,
+      }),
+    ]);
   });
 });
 
@@ -68,7 +89,7 @@ describe('GET /tasks/:id', () => {
 describe('PUT /tasks/:id', () => {
   it('should update task', async () => {
     const { task, accessToken } = await createRandomTask();
-    const updateTaskData = generateTask();
+    const updateTaskData = generateTaskData();
 
     const res = await updateTask(
       task.id,
@@ -90,7 +111,9 @@ describe('PUT /tasks/:id', () => {
       priority: updateTaskData.priority,
       dueDate: updateTaskData.dueDate.toISOString(),
       status: updateTaskData.status,
-      creatorId: task.creator.id,
+      creator: {
+        id: task.creator.id,
+      },
     });
   });
 
@@ -130,7 +153,7 @@ describe('DELETE /tasks/:id', () => {
 describe('POST /tasks/:id/labels', () => {
   it('should create labels for task', async () => {
     const { accessToken, task } = await createRandomTask();
-    const label = generateLabel();
+    const label = generateLabelData();
 
     const res = await createLabelsForTask(task.id, [label], accessToken);
 

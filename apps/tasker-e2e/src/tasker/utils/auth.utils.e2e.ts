@@ -1,5 +1,5 @@
 import { User } from '@prisma/client';
-import { generateUser, JwtDto, UserDto } from '@tasker/shared';
+import { generateUserData, JwtDto, UserDto } from '@tasker/shared';
 import axios from 'axios';
 
 export async function registerUser(user: User) {
@@ -25,7 +25,7 @@ export async function createUser(user: User) {
 }
 
 export async function createRandomUser() {
-  const user = generateUser();
+  const user = generateUserData();
   return createUser(user);
 }
 

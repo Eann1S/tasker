@@ -1,4 +1,4 @@
-import { generateUser } from '@tasker/shared';
+import { generateUserData } from '@tasker/shared';
 import { Redis } from 'ioredis';
 import {
   registerUser,
@@ -10,7 +10,7 @@ import {
 
 describe('POST /auth/register', () => {
   it('should register a user', async () => {
-    const user = generateUser();
+    const user = generateUserData();
     const res = await registerUser(user);
 
     expect(res.status).toBe(201);
@@ -21,7 +21,7 @@ describe('POST /auth/register', () => {
   });
 
   it('should not register a user when one with given email already exists', async () => {
-    const user = generateUser();
+    const user = generateUserData();
     await registerUser(user);
 
     const res = await registerUser(user);
@@ -37,7 +37,7 @@ describe('POST /auth/register', () => {
 
 describe('POST /auth/login', () => {
   it('should login', async () => {
-    const user = generateUser();
+    const user = generateUserData();
     await registerUser(user);
 
     const res = await login(user);
@@ -50,7 +50,7 @@ describe('POST /auth/login', () => {
   });
 
   it('should not login when user does not exist', async () => {
-    const user = generateUser();
+    const user = generateUserData();
 
     const res = await login(user);
 
@@ -63,7 +63,7 @@ describe('POST /auth/login', () => {
   });
 
   it('should not login when user password is invalid', async () => {
-    const user = generateUser();
+    const user = generateUserData();
     await registerUser(user);
     user.password = 'invalid';
 

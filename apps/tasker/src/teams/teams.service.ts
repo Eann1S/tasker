@@ -34,6 +34,35 @@ export class TeamsService {
       throw new InternalServerErrorException('Failed to create team');
     }
   }
+  
+  async getTeamById(teamId: string): Promise<TeamDto> {
+    try {
+      Logger.debug(`Retrieving team with id ${teamId}`);
+
+      const team = await this.prisma.team.findUniqueOrThrow({
+        where: { id: teamId },
+        include: this.include,
+      });
+      return mapTeamToDto(team);
+    } catch (e) {
+      Logger.error(e);
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+  }
+  
+  async getTeams(): Promise<TeamDto[]> {
+    try {
+      Logger.debug(`Retrieving teams`);
+
+      const teams = await this.prisma.team.findMany({
+        include: this.include,
+      });
+      return teams.map(mapTeamToDto);
+    } catch (e) {
+      Logger.error(e);
+      throw new NotFoundException(`Failed to retrieve teams`);
+    }
+  }
 
   async addUserToTeam(teamId: string, userId: string) {
     try {
@@ -115,21 +144,6 @@ export class TeamsService {
     } catch (e) {
       Logger.error(e);
       throw new InternalServerErrorException('Failed to assign task to team');
-    }
-  }
-
-  async getTeamById(teamId: string): Promise<TeamDto> {
-    try {
-      Logger.debug(`Retrieving team with id ${teamId}`);
-
-      const team = await this.prisma.team.findUniqueOrThrow({
-        where: { id: teamId },
-        include: this.include,
-      });
-      return mapTeamToDto(team);
-    } catch (e) {
-      Logger.error(e);
-      throw new NotFoundException(`Team with id ${teamId} not found`);
     }
   }
 }
