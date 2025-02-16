@@ -14,7 +14,6 @@ import { CreateTeamDto, TeamDto } from '@tasker/shared';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiResponse,
 } from '@nestjs/swagger';
 
 @Controller('teams')
@@ -81,30 +80,59 @@ export class TeamsController {
     return this.teamsService.removeUserFromTeam(req.userId, teamId, userId);
   }
 
-  @Post(':teamId/task/:taskId')
+  @Post(':teamId/member/:memberId/task/:taskId')
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({
-    description: 'The task has been successfully assigned to the team.',
+    description: 'The task has been successfully assigned to the member.',
     type: TeamDto,
   })
-  async assignTaskToTeam(
+  async assignTaskToMember(
     @Req() req: { userId: string },
     @Param('teamId') teamId: string,
-    @Param('taskId') taskId: string
+    @Param('taskId') taskId: string,
+    @Param('memberId') memberId: string
   ) {
-    return this.teamsService.assignTaskToTeam(req.userId, teamId, taskId);
+    return this.teamsService.assignTaskToMember(req.userId, teamId, taskId, memberId);
   }
 
-  @Delete(':teamId/task/:taskId')
+  @Delete(':teamId/member/:memberId/task/:taskId')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
-    description: 'The task has been successfully removed from the team.',
+    description: 'The task has been successfully removed from the member.',
+    type: TeamDto,
   })
-  async removeTaskFromTeam(
+  async removeTaskFromMember(
     @Req() req: { userId: string },
     @Param('teamId') teamId: string,
-    @Param('taskId') taskId: string
+    @Param('taskId') taskId: string,
+    @Param('memberId') memberId: string
   ) {
-    return this.teamsService.removeTaskFromTeam(req.userId, teamId, taskId);
+    return this.teamsService.removeTaskFromMember(req.userId, teamId, taskId, memberId);
+  }
+
+  @Get(':teamId/member/:memberId/tasks')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Tasks have been successfully retrieved for the member.',
+    type: TeamDto,
+  })
+  async getTasksForMember(
+    @Param('teamId') teamId: string,
+    @Param('memberId') memberId: string
+  ) {
+    return this.teamsService.getTasksForMember(teamId, memberId);
+  }
+
+  @Get(':teamId/tasks')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Tasks have been successfully retrieved for the team.',
+    type: TeamDto,
+  })
+  async getTasksForTeam(
+    @Req() req: { userId: string },
+    @Param('teamId') teamId: string,
+  ) {
+    return this.teamsService.getTasksForTeam(req.userId, teamId);
   }
 }

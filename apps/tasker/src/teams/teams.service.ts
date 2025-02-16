@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -8,10 +9,11 @@ import {
 import { CreateTeamDto, PrismaService, TeamDto } from '@tasker/shared';
 import { mapTeamToDto } from './team.mappings';
 import { TeamRole } from '@prisma/client';
+import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class TeamsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private tasksService: TasksService) {}
 
   private readonly include = { members: true, tasks: true };
 
@@ -109,49 +111,68 @@ export class TeamsService {
     }
   }
 
-  async assignTaskToTeam(curUserId: string, teamId: string, taskId: string) {
+  async assignTaskToMember(
+    curUserId: string,
+    teamId: string,
+    taskId: string,
+    memberId: string
+  ) {
     await this.checkThatUserIsAdmin(curUserId, teamId);
+    await this.checkThatUserIsMember(memberId, teamId);
+    await this.checkThatTaskBelongsToTeam(teamId, taskId);
     try {
-      Logger.debug(`Assigning task ${taskId} to team ${teamId}`);
+      Logger.debug(`Assigning task ${taskId} to member ${memberId}`);
 
-      const team = await this.prisma.team.update({
-        where: { id: teamId },
-        data: {
-          tasks: {
-            connect: { id: taskId },
-          },
-        },
-        include: this.include,
-      });
+      await this.tasksService.assignTask(taskId, memberId);
 
-      Logger.debug(`Assigned task ${taskId} to team {teamId}`);
-      return mapTeamToDto(team);
+      Logger.debug(`Assigned task ${taskId} to member ${memberId}`);
     } catch (e) {
       Logger.error(e);
-      throw new InternalServerErrorException('Failed to assign task to team');
+      throw new InternalServerErrorException('Failed to assign task');
     }
   }
 
-  async removeTaskFromTeam(curUserId: string, teamId: string, taskId: string) {
+  async removeTaskFromMember(
+    curUserId: string,
+    teamId: string,
+    taskId: string,
+    memberId: string
+  ) {
     await this.checkThatUserIsAdmin(curUserId, teamId);
+    await this.checkThatUserIsMember(memberId, teamId);
+    await this.checkThatTaskBelongsToTeam(teamId, taskId);
     try {
-      Logger.debug(`Removing task ${taskId} from team ${teamId}`);
+      Logger.debug(`Removing task ${taskId} from member ${memberId}`);
 
-      const team = await this.prisma.team.update({
-        where: { id: teamId },
-        data: {
-          tasks: {
-            disconnect: { id: taskId },
-          },
-        },
-        include: this.include,
-      });
+      await this.tasksService.removeTaskFromAssignee(taskId, memberId);
 
-      Logger.debug(`Removed task ${taskId} from team ${teamId}`);
-      return mapTeamToDto(team);
+      Logger.debug(`Removed task ${taskId} from member ${memberId}`);
     } catch (e) {
       Logger.error(e);
-      throw new InternalServerErrorException('Failed to assign task to team');
+      throw new InternalServerErrorException('Failed to remove task');
+    }
+  }
+
+  async getTasksForMember(teamId: string, memberId: string) {
+    try {
+      Logger.debug(`Getting tasks for member ${memberId} in team ${teamId}`);
+      const tasks = await this.tasksService.getTasksForAssignee(memberId, teamId);
+      return tasks;
+    } catch (e) {
+      Logger.error(e);
+      throw new InternalServerErrorException('Failed to get tasks for member');
+    }
+  }
+
+  async getTasksForTeam(curUserId: string, teamId: string) {
+    await this.checkThatUserIsMember(curUserId, teamId);
+    try {
+      Logger.debug(`Getting tasks for team ${teamId}`);
+      const tasks = await this.tasksService.getTasksForTeam(teamId);
+      return tasks;
+    } catch (e) {
+      Logger.error(e);
+      throw new InternalServerErrorException('Failed to get tasks for team');
     }
   }
 
@@ -160,6 +181,19 @@ export class TeamsService {
     if (member.role !== TeamRole.admin) {
       throw new ForbiddenException(
         `User with id ${userId} is not an admin of team with id ${teamId}`
+      );
+    }
+  }
+
+  private async checkThatUserIsMember(userId: string, teamId: string) {
+    await this.getTeamMember(userId, teamId);
+  }
+
+  private async checkThatTaskBelongsToTeam(teamId: string, taskId: string) {
+    const task = await this.tasksService.getTask(taskId);
+    if (task.teamId !== teamId) {
+      throw new BadRequestException(
+        `Task with id ${taskId} does not belong to team with id ${teamId}`
       );
     }
   }

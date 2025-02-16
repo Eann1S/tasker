@@ -1,22 +1,17 @@
-import { Label } from '@prisma/client';
-import { generateLabelData, LabelDto } from '@tasker/shared';
+import { CreateLabelDto, generateCreateLabelDto, LabelDto } from '@tasker/shared';
 import axios from 'axios';
 
-export async function createLabel(label: Label, token: string) {
+export async function createLabel(dto: CreateLabelDto, token: string) {
   return axios.post<LabelDto>(
     '/labels',
-    { name: label.name },
+    { name: dto.name },
     getHeaders(token)
   );
 }
 
 export async function createRandomLabel(token: string) {
-  const label = generateLabelData();
-  const { data } = await axios.post<LabelDto>(
-    '/labels',
-    { name: label.name },
-    getHeaders(token)
-  );
+  const dto = generateCreateLabelDto();
+  const { data } = await createLabel(dto, token);
   return data;
 }
 

@@ -1,40 +1,35 @@
 import { Task } from '@prisma/client';
 import {
   CreateLabelDto,
-  generateTaskData,
+  CreateTaskDto,
+  generateCreateTaskDto,
   TaskDto,
   UpdateTaskDto,
 } from '@tasker/shared';
 import axios from 'axios';
 import { createRandomUser } from './auth.utils.e2e';
 
-export async function createTask(task: Task, token: string) {
+export async function createTask(dto: CreateTaskDto, token: string) {
   return axios.post<TaskDto>(
     `/tasks`,
     {
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      dueDate: task.dueDate,
-      status: task.status,
+      title: dto.title,
+      description: dto.description,
+      priority: dto.priority,
+      dueDate: dto.dueDate,
+      status: dto.status,
+      assigneeId: dto.assigneeId,
+      teamId: dto.teamId,
     },
     getHeaders(token)
   );
 }
 
-export async function createRandomTask() {
-  const { user, accessToken } = await createRandomUser();
-  const task = generateTaskData({ creatorId: user.id });
-  const { data } = await createTask(task, accessToken);
+export async function createRandomTask(overwrites: Partial<CreateTaskDto> = {}) {
+  const { accessToken } = await createRandomUser();
+  const dto = generateCreateTaskDto(overwrites);
+  const { data } = await createTask(dto, accessToken);
   return { task: data, accessToken };
-}
-
-export async function getTasksForUser(userId: string, token: string) {
-  return axios.get<TaskDto[]>(`/tasks/user/${userId}`, getHeaders(token));
-}
-
-export async function getTasksForTeam(teamId: string, token: string) {
-  return axios.get<TaskDto[]>(`/tasks/team/${teamId}`, getHeaders(token));
 }
 
 export async function getTask(taskId: string, token: string) {

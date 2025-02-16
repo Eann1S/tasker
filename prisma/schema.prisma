@@ -15,14 +15,15 @@ datasource db {
 }
 
 model User {
-  id          String      @id @default(uuid())
-  email       String      @unique
-  username    String?
-  password    String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  tasks       Task[]
-  teams       TeamMember[]
+  id            String      @id @default(uuid())
+  email         String      @unique
+  username      String?
+  password      String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  tasks         Task[]      @relation(name: "Creator")
+  teams         TeamMember[]
+  assignedTasks Task[]      @relation(name: "Assignee")
   
   @@index([email])
 }
@@ -34,7 +35,7 @@ model Task {
   status      TaskStatus    @default(todo)
   priority    TaskPriority  @default(low)
   dueDate     DateTime?
-  creator     User          @relation(fields: [creatorId], references: [id])
+  creator     User          @relation(name: "Creator", fields: [creatorId], references: [id])
   creatorId   String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -42,8 +43,12 @@ model Task {
   labels      Label[]
   team        Team?         @relation(fields: [teamId], references: [id])
   teamId      String?
+  assignee    User?         @relation(name: "Assignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
 
   @@index([creatorId])
+  @@index([teamId])
+  @@index([assigneeId])
 }
 
 enum TaskStatus {
@@ -60,7 +65,7 @@ enum TaskPriority {
 
 model Subtask {
   id          String        @id @default(uuid())
-  task        Task          @relation(fields: [taskId], references: [id])
+  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId      String        
   title       String
   status      TaskStatus    @default(todo)
@@ -86,12 +91,12 @@ model Team {
 }
 
 model TeamMember {
-  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  teamId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  role        TeamRole
-  joinedAt    DateTime      @default(now())
+  team          Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  role          TeamRole
+  joinedAt      DateTime      @default(now())
 
   @@id([teamId, userId])
 }

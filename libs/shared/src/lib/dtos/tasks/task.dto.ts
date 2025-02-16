@@ -20,6 +20,9 @@ export class TaskDto {
   @ApiProperty({ type: UserDto })
   creator!: UserDto;
 
+  @ApiProperty({ type: UserDto })
+  assignee!: UserDto;
+
   @IsOptional()
   @IsEnum(TaskStatus)
   @ApiProperty({ enum: TaskStatus, default: TaskStatus.todo })

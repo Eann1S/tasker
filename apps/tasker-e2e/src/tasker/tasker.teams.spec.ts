@@ -1,13 +1,15 @@
-import { generateTeamData } from '@tasker/shared';
+import { generateCreateTeamDto } from '@tasker/shared';
 import { createRandomUser } from './utils/auth.utils.e2e';
 import {
   addUserToTeam,
-  assignTaskToTeam,
+  assignTaskToMember,
   createRandomTeam,
   createTeam,
+  getTasksForMember,
+  getTasksForTeam,
   getTeam,
   getTeams,
-  removeTaskFromTeam,
+  removeTaskFromMember,
   removeUserFromTeam,
 } from './utils/teams.utils.e2e';
 import { TeamRole } from '@prisma/client';
@@ -17,7 +19,7 @@ describe('Teams e2e tests', () => {
   describe('POST /teams', () => {
     it('should create a team', async () => {
       const { accessToken, user } = await createRandomUser();
-      const data = generateTeamData();
+      const data = generateCreateTeamDto();
 
       const res = await createTeam(data, accessToken);
 
@@ -148,61 +150,93 @@ describe('Teams e2e tests', () => {
     });
   });
 
-  describe('POST /:teamId/task/:taskId', () => {
-    it('should assign task to team', async () => {
+  describe('POST :teamId/member/:memberId/task/:taskId', () => {
+    it('should assign task to member', async () => {
       const { accessToken, team } = await createRandomTeam();
-      const { task } = await createRandomTask();
+      const { user: member } = await createRandomUser();
+      await addUserToTeam(team.id, member.id, accessToken);
+      const { task } = await createRandomTask({ teamId: team.id });
 
-      const res = await assignTaskToTeam(team.id, task.id, accessToken);
+      const res = await assignTaskToMember(
+        team.id,
+        task.id,
+        member.id,
+        accessToken
+      );
 
       expect(res.status).toBe(201);
-      expect(res.data.tasks).toEqual([
-        expect.objectContaining({ id: task.id }),
-      ]);
     });
 
-    it('should not assign task to team when not admin', async () => {
-      const { team, accessToken: adminAccessToken } = await createRandomTeam();
-      const { user, accessToken } = await createRandomUser();
-      await addUserToTeam(team.id, user.id, adminAccessToken);
+    it('should not assign task to member when user is not member', async () => {
+      const { accessToken, team } = await createRandomTeam();
+      const { user: member } = await createRandomUser();
       const { task } = await createRandomTask();
 
-      const res = await assignTaskToTeam(team.id, task.id, accessToken);
+      const res = await assignTaskToMember(
+        team.id,
+        task.id,
+        member.id,
+        accessToken
+      );
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
       expect(res.data).toMatchObject({
-        message: `User with id ${user.id} is not an admin of team with id ${team.id}`,
+        message: `Team member with userId ${member.id} and teamId ${team.id} not found`,
       });
     });
   });
 
-  describe('DELETE /:teamId/task/:taskId', () => {
-    it('should remove task from team', async () => {
+  describe('DELETE :teamId/member/:memberId/task/:taskId', () => {
+    it('should remove task from member', async () => {
       const { accessToken, team } = await createRandomTeam();
-      const { task } = await createRandomTask();
-      await assignTaskToTeam(team.id, task.id, accessToken);
+      const { user: member } = await createRandomUser();
+      await addUserToTeam(team.id, member.id, accessToken);
+      const { task } = await createRandomTask({ teamId: team.id });
+      await assignTaskToMember(team.id, task.id, member.id, accessToken);
 
-      const res = await removeTaskFromTeam(team.id, task.id, accessToken);
+      const res = await removeTaskFromMember(
+        team.id,
+        task.id,
+        member.id,
+        accessToken
+      );
 
       expect(res.status).toBe(200);
-      expect(res.data.tasks).toEqual([
-        expect.not.objectContaining({ id: task.id }),
+    });
+  });
+
+  describe('GET :teamId/member/:memberId/tasks', () => {
+    it('should return tasks for member', async () => {
+      const { accessToken, team } = await createRandomTeam();
+      const { user: member } = await createRandomUser();
+      await addUserToTeam(team.id, member.id, accessToken);
+      const { task } = await createRandomTask({ teamId: team.id });
+      await assignTaskToMember(team.id, task.id, member.id, accessToken);
+
+      const res = await getTasksForMember(team.id, member.id, accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.data).toEqual([
+        expect.objectContaining({
+          id: task.id,
+        }),
       ]);
     });
+  });
 
-    it('should not remove task from team when not admin', async () => {
-      const { team, accessToken: adminAccessToken } = await createRandomTeam();
-      const { user, accessToken } = await createRandomUser();
-      await addUserToTeam(team.id, user.id, adminAccessToken);
-      const { task } = await createRandomTask();
-      await assignTaskToTeam(team.id, task.id, adminAccessToken);
+  describe('GET :teamId/tasks', () => {
+    it('should return tasks for team', async () => {
+      const { accessToken, team } = await createRandomTeam();
+      const { task } = await createRandomTask({ teamId: team.id });
 
-      const res = await removeTaskFromTeam(team.id, user.id, accessToken);
+      const res = await getTasksForTeam(team.id, accessToken);
 
-      expect(res.status).toBe(403);
-      expect(res.data).toMatchObject({
-        message: `User with id ${user.id} is not an admin of team with id ${team.id}`,
-      });
+      expect(res.status).toBe(200);
+      expect(res.data).toEqual([
+        expect.objectContaining({
+          id: task.id,
+        }),
+      ]);
     });
   });
 });

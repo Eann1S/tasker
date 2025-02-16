@@ -1,4 +1,4 @@
-import { generateLabelData } from '@tasker/shared';
+import { generateCreateLabelDto } from '@tasker/shared';
 import { createRandomUser } from './utils/auth.utils.e2e';
 import {
   createLabel,
@@ -10,7 +10,7 @@ import {
 describe('POST /labels', () => {
   it('should create label', async () => {
     const { accessToken } = await createRandomUser();
-    const label = generateLabelData();
+    const label = generateCreateLabelDto();
 
     const res = await createLabel(label, accessToken);
 

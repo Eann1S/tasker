@@ -1,6 +1,7 @@
 import { Subtask } from '@prisma/client';
 import {
-  generateSubtaskData,
+  CreateSubtaskDto,
+  generateCreateSubtaskDto,
   SubtaskDto,
   TaskDto,
   UpdateSubtaskDto,
@@ -10,14 +11,14 @@ import { createRandomTask } from './tasks.utils.e2e';
 
 export async function createSubtask(
   taskId: string,
-  subtask: Subtask,
+  dto: CreateSubtaskDto,
   token: string
 ) {
   return axios.post<SubtaskDto>(
     `/subtasks/${taskId}`,
     {
-      title: subtask.title,
-      status: subtask.status,
+      title: dto.title,
+      status: dto.status,
     },
     getHeaders(token)
   );
@@ -25,15 +26,8 @@ export async function createSubtask(
 
 export async function createRandomSubtask() {
   const { task, accessToken } = await createRandomTask();
-  const subtask = generateSubtaskData();
-  const { data } = await axios.post<SubtaskDto>(
-    `/subtasks/${task.id}`,
-    {
-      title: subtask.title,
-      status: subtask.status,
-    },
-    getHeaders(accessToken)
-  );
+  const dto = generateCreateSubtaskDto();
+  const { data } = await createSubtask(task.id, dto, accessToken);
   return { subtask: data, task, accessToken };
 }
 

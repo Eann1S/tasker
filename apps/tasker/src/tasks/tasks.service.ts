@@ -11,6 +11,7 @@ import {
   UpdateTaskDto,
 } from '@tasker/shared';
 import { mapTaskToDto } from './tasks.mappings';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TasksService {
@@ -18,18 +19,50 @@ export class TasksService {
     creator: true,
     subtasks: true,
     labels: true,
+    assignee: true,
   };
 
   constructor(private prisma: PrismaService) {}
 
-  async createTask(userId: string, data: CreateTaskDto) {
+  async createTask(userId: string, dto: CreateTaskDto) {
     try {
       Logger.debug(`Creating task`);
+      const {
+        title,
+        status,
+        priority,
+        dueDate,
+        description,
+        assigneeId,
+        teamId,
+      } = dto;
 
-      const task = await this.prisma.task.create({
-        data: { ...data, creator: { connect: { id: userId } } },
+      let task = await this.prisma.task.create({
+        data: {
+          title,
+          status,
+          priority,
+          dueDate,
+          description,
+          creator: { connect: { id: userId } },
+        },
         include: this.include,
       });
+
+      if (assigneeId) {
+        task = await this.prisma.task.update({
+          where: { id: task.id },
+          data: { assignee: { connect: { id: assigneeId } } },
+          include: this.include,
+        });
+      }
+      if (teamId) {
+        task = await this.prisma.task.update({
+          where: { id: task.id },
+          data: { team: { connect: { id: teamId } } },
+          include: { ...this.include, team: true },
+        });
+      }
 
       Logger.debug(`Task created with id: ${task.id}`);
       return mapTaskToDto(task);
@@ -39,11 +72,57 @@ export class TasksService {
     }
   }
 
-  async getTasksForUser(creatorId: string) {
-    Logger.debug(`Finding all tasks for user with id: ${creatorId}`);
+  async assignTask(taskId: string, assigneeId: string) {
+    try {
+      Logger.debug(
+        `Assigning task with id: ${taskId} to user with id: ${assigneeId}`
+      );
+
+      const task = await this.prisma.task.update({
+        where: { id: taskId },
+        data: { assignee: { connect: { id: assigneeId } } },
+        include: this.include,
+      });
+
+      Logger.debug(
+        `Task with id: ${taskId} assigned to user with id: ${assigneeId}`
+      );
+      return mapTaskToDto(task);
+    } catch (error) {
+      Logger.error(error);
+      throw new InternalServerErrorException(
+        `Failed to assign task ${taskId} to user ${assigneeId}`
+      );
+    }
+  }
+
+  async removeTaskFromAssignee(taskId: string, assigneeId: string) {
+    try {
+      Logger.debug(
+        `Removing task with id: ${taskId} from user with id: ${assigneeId}`
+      );
+
+      await this.prisma.task.update({
+        where: { id: taskId },
+        data: { assignee: { disconnect: { id: assigneeId } } },
+      });
+
+      Logger.debug(
+        `Task with id: ${taskId} removed from user with id: ${assigneeId}`
+      );
+    } catch (error) {
+      Logger.error(error);
+      throw new InternalServerErrorException(
+        `Failed to assign task ${taskId} to user ${assigneeId}`
+      );
+    }
+  }
+
+  async getTasksForAssignee(assigneeId: string, teamId?: string) {
+    Logger.debug(`Finding all tasks for user with id: ${assigneeId}`);
 
     const tasks = await this.prisma.task.findMany({
-      where: { creatorId },
+      where: { assigneeId, teamId },
       include: this.include,
     });
     return tasks.map(mapTaskToDto);
@@ -99,7 +178,7 @@ export class TasksService {
       await this.prisma.task.delete({
         where: { id },
       });
-      
+
       Logger.debug(`Task with id: ${id} deleted`);
     } catch (error) {
       Logger.error(error);
@@ -149,7 +228,9 @@ export class TasksService {
       return mapTaskToDto(task);
     } catch (error) {
       Logger.error(error);
-      throw new InternalServerErrorException(`Failed to assign labels to task ${id}`);
+      throw new InternalServerErrorException(
+        `Failed to assign labels to task ${id}`
+      );
     }
   }
 
@@ -171,7 +252,9 @@ export class TasksService {
       return mapTaskToDto(task);
     } catch (error) {
       Logger.error(error);
-      throw new InternalServerErrorException(`Failed to remove labels from task ${id}`);
+      throw new InternalServerErrorException(
+        `Failed to remove labels from task ${id}`
+      );
     }
   }
 }

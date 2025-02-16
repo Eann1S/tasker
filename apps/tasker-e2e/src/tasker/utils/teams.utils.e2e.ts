@@ -1,15 +1,15 @@
-import { CreateTeamDto, generateTeamData, TeamDto } from '@tasker/shared';
+import { CreateTeamDto, generateCreateTeamDto, TaskDto, TeamDto } from '@tasker/shared';
 import axios from 'axios';
 import { createRandomUser } from './auth.utils.e2e';
 
-export async function createTeam(data: CreateTeamDto, token: string) {
-  return axios.post<TeamDto>('/teams', data, getHeaders(token));
+export async function createTeam(dto: CreateTeamDto, token: string) {
+  return axios.post<TeamDto>('/teams', dto, getHeaders(token));
 }
 
 export async function createRandomTeam() {
   const { user, accessToken } = await createRandomUser();
-  const data = generateTeamData();
-  const { data: team } = await createTeam(data, accessToken);
+  const dto = generateCreateTeamDto();
+  const { data: team } = await createTeam(dto, accessToken);
   return { user, team, accessToken };
 }
 
@@ -44,27 +44,37 @@ export async function removeUserFromTeam(
   );
 }
 
-export async function assignTaskToTeam(
+export async function assignTaskToMember(
   teamId: string,
   taskId: string,
+  memberId: string,
   token: string
 ) {
   return axios.post<TeamDto>(
-    `/teams/${teamId}/task/${taskId}`,
+    `/teams/${teamId}/member/${memberId}/task/${taskId}`,
     {},
     getHeaders(token)
   );
 }
 
-export async function removeTaskFromTeam(
+export async function removeTaskFromMember(
   teamId: string,
   taskId: string,
+  memberId: string,
   token: string
 ) {
   return axios.delete<TeamDto>(
-    `/teams/${teamId}/task/${taskId}`,
+    `/teams/${teamId}/member/${memberId}/task/${taskId}`,
     getHeaders(token)
   );
+}
+
+export async function getTasksForMember(teamId: string, memberId: string, token: string) {
+  return axios.get<TaskDto[]>(`/teams/${teamId}/member/${memberId}/tasks`, getHeaders(token));
+}
+
+export async function getTasksForTeam(teamId: string, token: string) {
+  return axios.get<TaskDto[]>(`/teams/${teamId}/tasks`, getHeaders(token));
 }
 
 function getHeaders(token: string) {
