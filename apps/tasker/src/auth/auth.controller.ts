@@ -4,7 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Request,
+  Req,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -14,6 +15,7 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
 } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -34,16 +36,22 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'User logged in successfully', type: JwtDto })
-  async login(@Body() loginDto: LoginDto): Promise<JwtDto> {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<JwtDto> {
+    return this.authService.login(loginDto, res);
   }
 
   @ApiBearerAuth()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'User logged out successfully' })
-  async logout(@Request() req: { userId: string }) {
-    return this.authService.logout(req.userId);
+  async logout(
+    @Req() req: { userId: string },
+    @Res({ passthrough: true }) res: Response
+  ) {
+    return this.authService.logout(req.userId, res);
   }
 
   @Public()
@@ -53,7 +61,10 @@ export class AuthController {
     description: 'User refreshed tokens successfully',
     type: JwtDto,
   })
-  async refreshTokens(@Body() body: { refreshToken: string }): Promise<JwtDto> {
-    return this.authService.refreshTokens(body.refreshToken);
+  async refreshTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<JwtDto> {
+    return this.authService.refreshTokens(req, res);
   }
 }

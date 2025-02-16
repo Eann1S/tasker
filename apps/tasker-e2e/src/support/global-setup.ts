@@ -12,7 +12,7 @@ module.exports = async function () {
 
   const redisContainerStartup = async () => {
     console.log('\nStarting redis container...\n');
-    const redisContainer = await new RedisContainer().start();
+    const redisContainer = await new RedisContainer("redis:alpine").start();
     process.env.REDIS_URL = redisContainer.getConnectionUrl();
     console.log('\nRedis container started\n');
     return redisContainer;
@@ -20,7 +20,7 @@ module.exports = async function () {
 
   const dbContainerStartup = async () => {
     console.log('\nStarting database container...\n');
-    const dbContainer = await new PostgreSqlContainer().start();
+    const dbContainer = await new PostgreSqlContainer("postgres:alpine").start();
     process.env.DATABASE_URL = dbContainer.getConnectionUri();
     console.log('\nDatabase container started\n');
     return dbContainer;

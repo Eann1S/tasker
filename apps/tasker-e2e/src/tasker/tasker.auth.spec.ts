@@ -45,8 +45,8 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
-      refreshToken: expect.any(String),
     });
+    expect(res.headers['set-cookie'][0]).toContain("refresh_token=");
   });
 
   it('should not login when user does not exist', async () => {
@@ -78,18 +78,18 @@ describe('POST /auth/login', () => {
 
 describe('POST /auth/logout', () => {
   it('should logout', async () => {
-    const { accessToken } = await createRandomUser();
+    const { accessToken, cookies } = await createRandomUser();
 
-    const res = await logout(accessToken);
+    const res = await logout(accessToken, cookies);
 
     expect(res.status).toBe(200);
-    expect(res.data).toBe('');
+    expect(res.headers['set-cookie'][0]).toContain("refresh_token=;");
   });
 
   it('should not logout if accessToken is invalid', async () => {
-    await createRandomUser();
+    const {cookies} = await createRandomUser();
 
-    const res = await logout('invalid token');
+    const res = await logout('invalid token', cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
@@ -100,21 +100,21 @@ describe('POST /auth/logout', () => {
 
 describe('POST /auth/refresh-token', () => {
   it('should refresh token', async () => {
-    const { refreshToken } = await createRandomUser();
+    const { cookies } = await createRandomUser();
 
-    const res = await refreshTokens(refreshToken);
+    const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({
       accessToken: expect.any(String),
-      refreshToken: expect.any(String),
     });
+    expect(res.headers['set-cookie'][0]).toContain("refresh_token=");
   });
 
   it('should not refresh token if refresh token is invalid', async () => {
     await createRandomUser();
 
-    const res = await refreshTokens('invalid');
+    const res = await refreshTokens("refresh_token=invalid");
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
@@ -125,7 +125,7 @@ describe('POST /auth/refresh-token', () => {
   it('should not refresh token if refresh token is missing', async () => {
     await createRandomUser();
 
-    const res = await refreshTokens();
+    const res = await refreshTokens("");
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({
@@ -135,10 +135,10 @@ describe('POST /auth/refresh-token', () => {
 
   it('should not refresh token if refresh tokens does not exist', async () => {
     const redis = new Redis(process.env.REDIS_URL);
-    const { user, refreshToken } = await createRandomUser();
-    redis.del(user.id);
+    const { user, cookies } = await createRandomUser();
+    await redis.del(user.id);
 
-    const res = await refreshTokens(refreshToken);
+    const res = await refreshTokens(cookies);
 
     expect(res.status).toBe(401);
     expect(res.data).toMatchObject({

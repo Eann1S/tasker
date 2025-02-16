@@ -11,10 +11,11 @@ import {
   RedisService,
 } from '@tasker/shared';
 import { mapUserToDto } from '../users/users.mappings';
+import { Request, Response } from 'express';
 
 @Injectable()
 export class AuthService {
-  private readonly ttlRefreshToken = +process.env.JWT_REFRESH_EXPIRATION_MILLIS;
+  private readonly ttlRefreshToken = (+process.env.JWT_REFRESH_EXPIRATION) * 1000;
   constructor(
     private userService: UsersService,
     private jwtService: JwtService,
@@ -36,7 +37,7 @@ export class AuthService {
     return mapUserToDto(user);
   }
 
-  async login(loginDto: LoginDto): Promise<JwtDto> {
+  async login(loginDto: LoginDto, res: Response): Promise<JwtDto> {
     const { email, password } = loginDto;
     Logger.log(`Login attempt for ${email}`);
 
@@ -47,36 +48,41 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const accessToken = await this.generateAccessToken(user.id);
-    const refreshToken = await this.generateAndStoreRefreshToken(user.id);
+    const { accessToken, refreshToken } = await this.generateTokens({
+      sub: user.id.toString(),
+    });
+    this.setTokenToCookie(res, refreshToken);
 
     Logger.log(`Login successful for ${email}`);
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
-  async logout(userId: string): Promise<void> {
+  async logout(userId: string, res: Response): Promise<void> {
     await this.deleteToken(userId);
+    res.clearCookie('refresh_token');
     Logger.log(`Logout successful for id: ${userId}`);
   }
 
-  async refreshTokens(refreshToken?: string): Promise<JwtDto> {
+  async refreshTokens(req: Request, res: Response): Promise<JwtDto> {
+    console.log(req.cookies);
+    const refreshToken = req.cookies.refresh_token;
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token is missing');
     }
-    
+
     const payload = await this.validateToken(refreshToken);
     const tokenExists = await this.doesTokenExist(payload.sub);
     if (!tokenExists) {
       throw new UnauthorizedException('Refresh token does not exist');
     }
 
-    const accessToken = await this.generateAccessToken(payload.sub);
-    const newRefreshToken = await this.generateAndStoreRefreshToken(payload.sub);
+    const { accessToken, refreshToken: newRefresh } = await this.generateTokens(
+      payload
+    );
+    this.setTokenToCookie(res, newRefresh);
 
     Logger.log(`Refresh tokens successful for id: ${payload.sub}`);
-    return {
-      accessToken, refreshToken: newRefreshToken
-    };
+    return { accessToken };
   }
 
   async validateToken(token: string): Promise<JwtPayload | never> {
@@ -98,24 +104,35 @@ export class AuthService {
     return argon2.verify(hashedPassword, password);
   }
 
-  private generateAccessToken(sub: string) {
+  private setTokenToCookie(res: Response, token: string) {
+    res.cookie('refresh_token', token, {
+      httpOnly: true,
+      maxAge: this.ttlRefreshToken,
+      secure: false,
+      sameSite: 'none',
+    });
+  }
+
+  private async generateTokens(payload: Omit<JwtPayload, 'exp' | 'iat'>) {
+    const accessToken = await this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload);
+    return { accessToken, refreshToken };
+  }
+
+  private async generateAccessToken(payload: Omit<JwtPayload, 'exp' | 'iat'>) {
     return this.jwtService.signAsync(
-      { sub },
-      { expiresIn: process.env.JWT_EXPIRATION }
+      { sub: payload.sub },
+      { expiresIn: +process.env.JWT_EXPIRATION }
     );
   }
 
-  private async generateAndStoreRefreshToken(sub: string) {
-    const refreshToken = await this.generateRefreshToken(sub);
-    await this.storeToken(sub, refreshToken, this.ttlRefreshToken);
+  private async generateRefreshToken(payload: Omit<JwtPayload, 'exp' | 'iat'>) {
+    const refreshToken = await this.jwtService.signAsync(
+      { sub: payload.sub },
+      { expiresIn: +process.env.JWT_REFRESH_EXPIRATION }
+    );
+    await this.storeToken(payload.sub, refreshToken, this.ttlRefreshToken);
     return refreshToken;
-  }
-
-  private generateRefreshToken(sub: string) {
-    return this.jwtService.signAsync(
-      { sub },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
-    );
   }
 
   private async storeToken(userId: string, token: string, ttl: number) {
