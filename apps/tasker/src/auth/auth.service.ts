@@ -85,7 +85,10 @@ export class AuthService {
     return { accessToken };
   }
 
-  async validateToken(token: string): Promise<JwtPayload | never> {
+  async validateToken(token?: string): Promise<JwtPayload | never> {
+    if (!token) {
+      throw new UnauthorizedException('Access token is missing');
+    }
     try {
       return await this.jwtService.verifyAsync(token);
     } catch (error) {

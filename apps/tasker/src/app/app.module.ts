@@ -6,9 +6,18 @@ import { TasksModule } from '../tasks/tasks.module';
 import { SubtasksModule } from '../subtasks/subtasks.module';
 import { LabelsModule } from '../labels/labels.module';
 import { TeamsModule } from '../teams/teams.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [AuthModule, TasksModule, SubtasksModule, LabelsModule, TeamsModule, SharedModule],
+  imports: [
+    AuthModule,
+    TasksModule,
+    SubtasksModule,
+    LabelsModule,
+    TeamsModule,
+    EventsModule,
+    SharedModule,
+  ],
   controllers: [],
   providers: [],
 })
