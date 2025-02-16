@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -6,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateTeamDto, PrismaService, TeamDto } from '@tasker/shared';
 import { mapTeamToDto } from './team.mappings';
+import { TeamRole } from '@prisma/client';
 
 @Injectable()
 export class TeamsService {
@@ -34,7 +36,7 @@ export class TeamsService {
       throw new InternalServerErrorException('Failed to create team');
     }
   }
-  
+
   async getTeamById(teamId: string): Promise<TeamDto> {
     try {
       Logger.debug(`Retrieving team with id ${teamId}`);
@@ -49,7 +51,7 @@ export class TeamsService {
       throw new NotFoundException(`Team with id ${teamId} not found`);
     }
   }
-  
+
   async getTeams(): Promise<TeamDto[]> {
     try {
       Logger.debug(`Retrieving teams`);
@@ -64,7 +66,8 @@ export class TeamsService {
     }
   }
 
-  async addUserToTeam(teamId: string, userId: string) {
+  async addUserToTeam(curUserId: string, teamId: string, userId: string) {
+    await this.checkThatUserIsAdmin(curUserId, teamId);
     try {
       Logger.debug(`Adding user ${userId} to team ${teamId}`);
 
@@ -86,7 +89,10 @@ export class TeamsService {
     }
   }
 
-  async removeUserFromTeam(teamId: string, userId: string) {
+  async removeUserFromTeam(curUserId: string, teamId: string, userId: string) {
+    if (curUserId !== userId) {
+      await this.checkThatUserIsAdmin(curUserId, teamId);
+    }
     try {
       Logger.debug(`Deleting user ${userId} from team ${teamId}`);
 
@@ -103,7 +109,8 @@ export class TeamsService {
     }
   }
 
-  async assignTaskToTeam(teamId: string, taskId: string) {
+  async assignTaskToTeam(curUserId: string, teamId: string, taskId: string) {
+    await this.checkThatUserIsAdmin(curUserId, teamId);
     try {
       Logger.debug(`Assigning task ${taskId} to team ${teamId}`);
 
@@ -125,7 +132,8 @@ export class TeamsService {
     }
   }
 
-  async removeTaskFromTeam(teamId: string, taskId: string) {
+  async removeTaskFromTeam(curUserId: string, teamId: string, taskId: string) {
+    await this.checkThatUserIsAdmin(curUserId, teamId);
     try {
       Logger.debug(`Removing task ${taskId} from team ${teamId}`);
 
@@ -144,6 +152,33 @@ export class TeamsService {
     } catch (e) {
       Logger.error(e);
       throw new InternalServerErrorException('Failed to assign task to team');
+    }
+  }
+
+  private async checkThatUserIsAdmin(userId: string, teamId: string) {
+    const member = await this.getTeamMember(userId, teamId);
+    if (member.role !== TeamRole.admin) {
+      throw new ForbiddenException(
+        `User with id ${userId} is not an admin of team with id ${teamId}`
+      );
+    }
+  }
+
+  private async getTeamMember(userId: string, teamId: string) {
+    try {
+      return await this.prisma.teamMember.findUniqueOrThrow({
+        where: {
+          teamId_userId: {
+            userId,
+            teamId,
+          },
+        },
+      });
+    } catch (e) {
+      Logger.error(e);
+      throw new NotFoundException(
+        `Team member with userId ${userId} and teamId ${teamId} not found`
+      );
     }
   }
 }

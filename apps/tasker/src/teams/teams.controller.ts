@@ -40,9 +40,7 @@ export class TeamsController {
     description: 'The team has been successfully retrieved.',
     type: TeamDto,
   })
-  async getTeam(
-    @Param('teamId') teamId: string
-  ) {
+  async getTeam(@Param('teamId') teamId: string) {
     return this.teamsService.getTeamById(teamId);
   }
 
@@ -62,8 +60,12 @@ export class TeamsController {
     description: 'The user has been successfully added to the team.',
     type: TeamDto,
   })
-  async addUserToTeam(@Param('teamId') teamId: string, @Param('userId') userId: string) {
-    return this.teamsService.addUserToTeam(teamId, userId);
+  async addUserToTeam(
+    @Req() req: { userId: string },
+    @Param('teamId') teamId: string,
+    @Param('userId') userId: string
+  ) {
+    return this.teamsService.addUserToTeam(req.userId, teamId, userId);
   }
 
   @Delete(':teamId/user/:userId')
@@ -71,8 +73,12 @@ export class TeamsController {
   @ApiOkResponse({
     description: 'The user has been successfully removed from the team.',
   })
-  async removeUserFromTeam(@Param('teamId') teamId: string, @Param('userId') userId: string) {
-    return this.teamsService.removeUserFromTeam(teamId, userId);
+  async removeUserFromTeam(
+    @Req() req: { userId: string },
+    @Param('teamId') teamId: string,
+    @Param('userId') userId: string
+  ) {
+    return this.teamsService.removeUserFromTeam(req.userId, teamId, userId);
   }
 
   @Post(':teamId/task/:taskId')
@@ -81,8 +87,12 @@ export class TeamsController {
     description: 'The task has been successfully assigned to the team.',
     type: TeamDto,
   })
-  async assignTaskToTeam(@Param('teamId') teamId: string, @Param('taskId') taskId: string) {
-    return this.teamsService.assignTaskToTeam(teamId, taskId);
+  async assignTaskToTeam(
+    @Req() req: { userId: string },
+    @Param('teamId') teamId: string,
+    @Param('taskId') taskId: string
+  ) {
+    return this.teamsService.assignTaskToTeam(req.userId, teamId, taskId);
   }
 
   @Delete(':teamId/task/:taskId')
@@ -90,7 +100,11 @@ export class TeamsController {
   @ApiOkResponse({
     description: 'The task has been successfully removed from the team.',
   })
-  async removeTaskFromTeam(@Param('teamId') teamId: string, @Param('taskId') taskId: string) {
-    return this.teamsService.removeTaskFromTeam(teamId, taskId);
+  async removeTaskFromTeam(
+    @Req() req: { userId: string },
+    @Param('teamId') teamId: string,
+    @Param('taskId') taskId: string
+  ) {
+    return this.teamsService.removeTaskFromTeam(req.userId, teamId, taskId);
   }
 }
